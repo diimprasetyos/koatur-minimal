@@ -2,59 +2,125 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Adjustment\StockMovement;
+use App\Models\Sales\Sale;
+use App\Models\Traits\HasUuid;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasTenants;
+use Filament\Panel;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Str;
+use Illuminate\Support\Collection;
+use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser, HasTenants
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasRoles, Notifiable, HasUuid;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
+        'uuid',
+        'tenant_id',
         'name',
         'email',
         'password',
+        'is_active',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $casts = [
+        'is_active'         => 'boolean',
+        'email_verified_at' => 'datetime',
+        'password'          => 'hashed',
+    ];
+
+    // ─── Filament Panel Access ────────────────────────────────────
+
+    public function canAccessPanel(Panel $panel): bool
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        if (! $this->is_active) {
+            return false;
+        }
+
+        return match ($panel->getId()) {
+            // Panel superadmin: hanya role super_admin, tidak butuh tenant
+            'superadmin' => $this->hasRole('super_admin'),
+
+            // Panel admin (tenant-aware): semua role kecuali super_admin
+            // dan wajib punya tenant
+            'admin' => ! $this->hasRole('super_admin')
+                && $this->tenant_id !== null,
+
+            default => false,
+        };
     }
 
-    // auto generate uuid
-    protected static function booted()
+    // ─── Filament Tenancy Contracts ───────────────────────────────
+
+    public function getTenants(Panel $panel): Collection
     {
-        static::creating(function ($user) {
-            if (empty($user->uuid)) {
-                $user->uuid = (string) Str::uuid();
-            }
-        });
+        return $this->tenants()->get();
+    }
+
+    public function canAccessTenant(Model $tenant): bool
+    {
+        return $this->tenants()->whereKey($tenant)->exists();
+    }
+
+    // ─── Relations ───────────────────────────────────────────────
+
+    /**
+     * BelongsToMany — untuk Filament tenancy (pivot tenant_user)
+     */
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(Tenant::class);
+    }
+
+    /**
+     * BelongsTo — untuk query internal (tenant default user ini)
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->hasRole('owner');
+    }
+
+    public function isManager(): bool
+    {
+        return $this->hasRole('manager');
+    }
+
+    public function isKasir(): bool
+    {
+        return $this->hasRole('kasir');
     }
 }

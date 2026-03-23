@@ -14,8 +14,14 @@ return new class extends Migration
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
+
             $table->string('name');
-            $table->string('subscription_plan')->nullable();
+            $table->string('slug')->unique(); // untuk subdomain / identifikasi unik
+            $table->string('phone')->nullable();
+            $table->string('address')->nullable();
+            $table->string('logo')->nullable();
+            $table->string('subscription_plan')->default('free'); // free, basic, pro
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
