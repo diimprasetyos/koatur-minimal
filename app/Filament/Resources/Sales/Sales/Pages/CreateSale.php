@@ -9,10 +9,11 @@ class CreateSale extends CreateRecord
 {
     protected static string $resource = SaleResource::class;
 
-    protected function mutateFormDataBeforeCreate(array $data): array
+    protected function afterCreate(): void
     {
-        $data['user_id'] = auth()->id();
-        // tenant_id sudah diisi otomatis oleh Filament
-        return $data;
+        // Reduce stock setelah sale dan items tersimpan
+        if ($this->record->status === \App\Models\Sales\Sale::STATUS_PAID) {
+            $this->record->reduceStock();
+        }
     }
 }

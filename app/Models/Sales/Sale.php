@@ -2,25 +2,26 @@
 
 namespace App\Models\Sales;
 
+use App\Models\Adjustment\StockMovement;
 use App\Models\Parties\Customer;
-use App\Models\Sales\SaleItem;
-use App\Models\Traits\BelongsToTenant;
-use App\Models\Traits\HasUuid;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Filament\Facades\Filament;
 
 class Sale extends Model
 {
-    use HasUuid, BelongsToTenant;
-
     protected $fillable = [
-        'uuid',
         'tenant_id',
         'user_id',
         'customer_id',
+        'uuid',
         'invoice_number',
+        'sale_date',
         'payment_method',
         'subtotal',
         'discount',
@@ -33,12 +34,13 @@ class Sale extends Model
     ];
 
     protected $casts = [
-        'subtotal' => 'decimal:2',
-        'discount' => 'decimal:2',
-        'tax'      => 'decimal:2',
-        'total'    => 'decimal:2',
-        'paid'     => 'decimal:2',
-        'change'   => 'decimal:2',
+        'sale_date' => 'date',
+        'subtotal'  => 'decimal:2',
+        'discount'  => 'decimal:2',
+        'tax'       => 'decimal:2',
+        'total'     => 'decimal:2',
+        'paid'      => 'decimal:2',
+        'change'    => 'decimal:2',
     ];
 
     const STATUS_PAID      = 'paid';
@@ -49,56 +51,181 @@ class Sale extends Model
     const PAYMENT_TRANSFER = 'transfer';
     const PAYMENT_EWALLET  = 'ewallet';
 
-    public static function bootSale(): void
+    // ─── Boot ─────────────────────────────────────────────────────
+
+    protected static function booted(): void
     {
         static::creating(function (self $model) {
-            if (empty($model->invoice_number)) {
-                $model->invoice_number = self::generateInvoiceNumber($model->tenant_id);
-            }
+            $model->uuid           ??= Str::uuid();
+            $model->invoice_number ??= self::generateInvoiceNumber($model->tenant_id);
+            $model->tenant_id      ??= Filament::getTenant()?->id;
+            $model->user_id        ??= auth()->id();
+            $model->sale_date      ??= now();
         });
+
+        // ⚠️ PERBAIKAN: Hanya reduce stock SETELAH sale DENGAN ITEMS sudah tersimpan
+        // Jangan gunakan 'created', gunakan manual call dari CreateSale page
     }
 
-    public static function generateInvoiceNumber(int $tenantId): string
-    {
-        $count = self::whereDate('created_at', today())
-            ->where('tenant_id', $tenantId)
-            ->count() + 1;
+    // ─── Relations ────────────────────────────────────────────────
 
-        return sprintf('INV-%s-%04d', now()->format('Ymd'), $count);
-    }
-
-    public function isPaid(): bool
+    public function tenant(): BelongsTo
     {
-        return $this->status === self::STATUS_PAID;
-    }
-    public function isCancelled(): bool
-    {
-        return $this->status === self::STATUS_CANCELLED;
-    }
-
-    public function scopeToday($query)
-    {
-        return $query->whereDate('created_at', today());
-    }
-    public function scopePaid($query)
-    {
-        return $query->where('status', self::STATUS_PAID);
-    }
-    public function scopeByTenant($query, int $id)
-    {
-        return $query->where('tenant_id', $id);
+        return $this->belongsTo(Tenant::class);
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
+
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    public function returns(): HasMany
+    {
+        return $this->hasMany(\App\Models\Return\SaleReturn::class);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────
+
+    public static function generateInvoiceNumber(int $tenantId): string
+    {
+        $date  = now()->format('Ymd');
+        $count = self::whereDate('created_at', today())
+            ->where('tenant_id', $tenantId)
+            ->count() + 1;
+
+        return 'INV-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Reduce stock saat penjualan
+     */
+    public function reduceStock(): void
+    {
+        // ⚠️ PENTING: Cek dulu apakah sudah pernah reduce stock
+        $alreadyReduced = StockMovement::where('reference_type', 'sale')
+            ->where('reference_id', $this->id)
+            ->where('type', StockMovement::TYPE_OUT)
+            ->exists();
+
+        if ($alreadyReduced) {
+            return; // Sudah pernah reduce, skip
+        }
+
+        DB::transaction(function () {
+            foreach ($this->items as $item) {
+                $product = $item->product;
+
+                // Skip jika product tidak track stock
+                if (!$product->track_stock) {
+                    continue;
+                }
+
+                $stockBefore = $product->stock;
+                $product->decrement('stock', $item->qty);
+
+                StockMovement::create([
+                    'tenant_id'      => $this->tenant_id,
+                    'product_id'     => $item->product_id,
+                    'user_id'        => $this->user_id,
+                    'reference_type' => 'sale',
+                    'reference_id'   => $this->id,
+                    'type'           => StockMovement::TYPE_OUT,
+                    'qty'            => $item->qty,
+                    'stock_before'   => $stockBefore,
+                    'stock_after'    => $stockBefore - $item->qty,
+                    'notes'          => 'Penjualan #' . $this->invoice_number,
+                ]);
+            }
+
+            // Update piutang customer jika belum lunas
+            if ($this->customer_id && $this->status === self::STATUS_PENDING) {
+                $remaining = $this->total - $this->paid;
+                if ($remaining > 0 && method_exists($this->customer, 'incrementReceivable')) {
+                    $this->customer->incrementReceivable($remaining);
+                }
+            }
+        });
+    }
+
+    /**
+     * Restore stock saat sale dibatalkan
+     */
+    public function restoreStock(): void
+    {
+        DB::transaction(function () {
+            foreach ($this->items as $item) {
+                $product = $item->product;
+
+                if (!$product->track_stock) {
+                    continue;
+                }
+
+                $stockBefore = $product->stock;
+                $product->increment('stock', $item->qty);
+
+                StockMovement::create([
+                    'tenant_id'      => $this->tenant_id,
+                    'product_id'     => $item->product_id,
+                    'user_id'        => $this->user_id,
+                    'reference_type' => 'sale_cancelled',
+                    'reference_id'   => $this->id,
+                    'type'           => StockMovement::TYPE_IN,
+                    'qty'            => $item->qty,
+                    'stock_before'   => $stockBefore,
+                    'stock_after'    => $stockBefore + $item->qty,
+                    'notes'          => 'Pembatalan Penjualan #' . $this->invoice_number,
+                ]);
+            }
+
+            // Hapus stock movement lama
+            StockMovement::where('reference_type', 'sale')
+                ->where('reference_id', $this->id)
+                ->where('type', StockMovement::TYPE_OUT)
+                ->delete();
+        });
+    }
+
+    public function recalculate(): void
+    {
+        $this->subtotal = $this->items->sum('subtotal');
+        $this->total    = $this->subtotal - $this->discount + $this->tax;
+        $this->change   = max(0, $this->paid - $this->total);
+
+        $this->status = match (true) {
+            $this->paid >= $this->total => self::STATUS_PAID,
+            default                      => self::STATUS_PENDING,
+        };
+
+        $this->save();
+    }
+
+    // ─── Scopes ───────────────────────────────────────────────────
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('sale_date', today());
+    }
+
+    public function scopePaid($query)
+    {
+        return $query->where('status', self::STATUS_PAID);
+    }
+
+    public function scopeForCurrentTenant($query)
+    {
+        if ($tenantId = Filament::getTenant()?->id) {
+            return $query->where('tenant_id', $tenantId);
+        }
+        return $query;
     }
 }

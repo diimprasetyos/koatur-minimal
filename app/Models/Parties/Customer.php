@@ -2,37 +2,73 @@
 
 namespace App\Models\Parties;
 
+use App\Models\Return\SaleReturn;
 use App\Models\Sales\Sale;
+use App\Models\Tenant;
 use App\Models\Traits\BelongsToTenant;
 use App\Models\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Customer extends Model
 {
-    use HasUuid, BelongsToTenant;
 
     protected $fillable = [
-        'uuid',
         'tenant_id',
+        'uuid',
         'name',
+        'code',
         'phone',
         'email',
         'address',
-        'loyalty_points',
+        'contact_person',
+        'payable_amount',
+        'is_active',
+        'notes',
     ];
 
     protected $casts = [
-        'loyalty_points' => 'integer',
+        'payable_amount' => 'decimal:2',
+        'is_active'      => 'boolean',
     ];
 
-    public function addLoyaltyPoints(int $points): void
+    // ─── Boot ─────────────────────────────────────────────────────
+
+    protected static function booted(): void
     {
-        $this->increment('loyalty_points', $points);
+        static::creating(function (self $model) {
+            $model->uuid ??= Str::uuid();
+        });
+    }
+
+    // ─── Relations ────────────────────────────────────────────────
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function sales(): HasMany
     {
         return $this->hasMany(Sale::class);
+    }
+
+    public function saleReturns(): HasMany
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────
+
+    public function incrementPayable(float $amount): void
+    {
+        $this->increment('payable_amount', $amount);
+    }
+
+    public function decrementPayable(float $amount): void
+    {
+        $this->decrement('payable_amount', max(0, $amount));
     }
 }

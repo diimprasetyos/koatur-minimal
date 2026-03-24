@@ -14,10 +14,6 @@ class StockAdjustmentsTable
     {
         return $table
             ->columns([
-                TextColumn::make('uuid')
-                    ->label('UUID'),
-                TextColumn::make('tenant.name')
-                    ->searchable(),
                 TextColumn::make('user.name')
                     ->searchable(),
                 TextColumn::make('reference_number')

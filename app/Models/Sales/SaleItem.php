@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SaleItem extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'sale_id',
         'product_id',
@@ -27,17 +29,27 @@ class SaleItem extends Model
         'qty'        => 'integer',
     ];
 
-    // ─── Helpers ─────────────────────────────────────────────────
+    // ─── Boot ─────────────────────────────────────────────────────
 
-    /**
-     * Hitung profit item ini (subtotal - (cost_price * qty))
-     */
-    public function getProfit(): float
+    protected static function booted(): void
     {
-        return (float) $this->subtotal - ($this->cost_price * $this->qty);
+        static::saving(function (self $item) {
+            // Auto hitung subtotal
+            $item->subtotal = ($item->price - $item->discount) * $item->qty;
+        });
+
+        static::saved(function (self $item) {
+            // Trigger recalculate parent sale
+            $item->sale?->recalculate();
+        });
+
+        static::deleted(function (self $item) {
+            // Trigger recalculate parent sale
+            $item->sale?->recalculate();
+        });
     }
 
-    // ─── Relations ───────────────────────────────────────────────
+    // ─── Relations ────────────────────────────────────────────────
 
     public function sale(): BelongsTo
     {
@@ -47,5 +59,27 @@ class SaleItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────
+
+    /**
+     * Hitung profit item ini
+     */
+    public function getProfit(): float
+    {
+        return (float) $this->subtotal - ($this->cost_price * $this->qty);
+    }
+
+    /**
+     * Hitung margin profit (%)
+     */
+    public function getProfitMargin(): float
+    {
+        if ($this->subtotal <= 0) {
+            return 0;
+        }
+
+        return ($this->getProfit() / $this->subtotal) * 100;
     }
 }

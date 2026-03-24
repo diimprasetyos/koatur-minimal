@@ -14,12 +14,6 @@ class StockAdjustmentForm
     {
         return $schema
             ->components([
-                TextInput::make('uuid')
-                    ->label('UUID')
-                    ->required(),
-                Select::make('tenant_id')
-                    ->relationship('tenant', 'name')
-                    ->required(),
                 Select::make('user_id')
                     ->relationship('user', 'name')
                     ->required(),

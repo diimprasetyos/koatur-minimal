@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Filament\Facades\Filament;
 
 class Purchase extends Model
 {
@@ -63,14 +64,10 @@ class Purchase extends Model
         static::creating(function (self $model) {
             $model->uuid             ??= Str::uuid();
             $model->reference_number ??= self::generateReferenceNumber($model->tenant_id);
+            $model->tenant_id        ??= Filament::getTenant()?->id;
+            $model->user_id          ??= auth()->id();
         });
 
-        // Saat purchase di-receive: update stok + cost_price produk
-        static::updated(function (self $model) {
-            if ($model->wasChanged('status') && $model->status === self::STATUS_RECEIVED) {
-                $model->receiveStock();
-            }
-        });
     }
 
     // ─── Relations ────────────────────────────────────────────────
@@ -117,12 +114,27 @@ class Purchase extends Model
      */
     public function receiveStock(): void
     {
+        // ⚠️ PENTING: Cek dulu apakah sudah pernah receive stock
+        $alreadyReceived = StockMovement::where('reference_type', 'purchase')
+            ->where('reference_id', $this->id)
+            ->where('type', StockMovement::TYPE_IN)
+            ->exists();
+
+        if ($alreadyReceived) {
+            return; // Sudah pernah receive, skip
+        }
+
         DB::transaction(function () {
             foreach ($this->items as $item) {
                 $product = $item->product;
 
+                if (!$product->track_stock) {
+                    continue;
+                }
+
                 $stockBefore = $product->stock;
                 $product->increment('stock', $item->qty);
+
                 // Update cost_price produk dengan harga beli terbaru
                 $product->update(['cost_price' => $item->cost_price]);
 
@@ -136,12 +148,12 @@ class Purchase extends Model
                     'qty'            => $item->qty,
                     'stock_before'   => $stockBefore,
                     'stock_after'    => $stockBefore + $item->qty,
-                    'notes'          => 'Auto: Pembelian #' . $this->reference_number,
+                    'notes'          => 'Pembelian #' . $this->reference_number,
                 ]);
             }
 
             // Update hutang ke supplier
-            if ($this->supplier_id && $this->due > 0) {
+            if ($this->supplier_id && $this->due > 0 && method_exists($this->supplier, 'incrementPayable')) {
                 $this->supplier->incrementPayable($this->due);
             }
         });
@@ -160,5 +172,15 @@ class Purchase extends Model
         };
 
         $this->save();
+    }
+
+    // ─── Scopes ───────────────────────────────────────────────────
+
+    public function scopeForCurrentTenant($query)
+    {
+        if ($tenantId = Filament::getTenant()?->id) {
+            return $query->where('tenant_id', $tenantId);
+        }
+        return $query;
     }
 }

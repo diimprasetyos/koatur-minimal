@@ -27,6 +27,7 @@ return new class extends Migration
             $table->decimal('cost_price', 12, 2)->default(0); // harga modal (untuk laporan profit)
 
             $table->integer('stock')->default(0);
+            $table->boolean('track_stock')->default(true);
             $table->boolean('is_active')->default(true);
 
             $table->timestamps();

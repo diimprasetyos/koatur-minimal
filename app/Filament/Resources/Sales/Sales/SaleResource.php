@@ -24,7 +24,7 @@ class SaleResource extends Resource
 
     protected static ?string $navigationLabel = 'Penjualan';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Penjualan';
+    protected static string | UnitEnum | null $navigationGroup = 'Transaksi';
 
     protected static ?string $recordTitleAttribute = 'uuid';
 
@@ -61,6 +61,6 @@ class SaleResource extends Resource
         return parent::getEloquentQuery()
             ->forCurrentTenant()
             ->with(['user', 'customer', 'items.product'])
-            ->latest();
+            ->withCount('items');
     }
 }

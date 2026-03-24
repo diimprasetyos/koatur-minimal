@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Adjustment\StockMovements\Schemas;
 
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -13,8 +15,8 @@ class StockMovementForm
     {
         return $schema
             ->components([
-                Select::make('tenant_id')
-                    ->relationship('tenant', 'name')
+                Hidden::make('tenant_id')
+                    ->default(fn() => Filament::getTenant()?->id)
                     ->required(),
                 Select::make('product_id')
                     ->relationship('product', 'name')

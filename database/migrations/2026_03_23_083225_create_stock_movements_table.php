@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stock_movements', function (Blueprint $table) {
+            $table->id()->first();
 
             $table->foreignId('tenant_id')->after('id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->after('tenant_id')->constrained()->cascadeOnDelete();
@@ -30,6 +31,8 @@ return new class extends Migration
 
             $table->index(['reference_type', 'reference_id']);
             $table->index(['tenant_id', 'product_id']);
+
+            $table->timestamp('created_at')->nullable()->useCurrent();
         });
     }
 

@@ -13,12 +13,17 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class StockAdjustmentResource extends Resource
 {
     protected static ?string $model = StockAdjustment::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Clipboard;
+
+    protected static ?string $navigationLabel = 'Penyesuaian Stok';
+
+    protected static string | UnitEnum | null $navigationGroup = 'Penyesuaian';
 
     protected static ?string $recordTitleAttribute = 'name';
 

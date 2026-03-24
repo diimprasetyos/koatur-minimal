@@ -24,6 +24,8 @@ class ProductsTable
     {
         return $table
             ->columns([
+                TextColumn::make('tenant.name')
+                    ->searchable(),
                 ImageColumn::make('image')
                     ->label('')
                     ->circular()

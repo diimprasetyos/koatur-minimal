@@ -18,6 +18,8 @@ class CategoriesTable
     {
         return $table
             ->columns([
+                TextColumn::make('tenant.name')
+                    ->searchable(),
                 TextColumn::make('name')
                     ->label('Nama')
                     ->searchable()

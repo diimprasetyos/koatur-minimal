@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('sales', function (Blueprint $table) {
@@ -16,29 +13,27 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
 
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete(); // kasir yang melayani
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
 
-            $table->string('invoice_number')->unique(); // nomor nota, e.g. INV-20260322-0001
-            $table->string('payment_method')->default('cash'); // cash, transfer, ewallet
+            $table->string('invoice_number')->unique();
+            $table->date('sale_date'); // Tambahkan ini
+            $table->string('payment_method')->default('cash');
 
-            $table->decimal('subtotal', 12, 2); // total sebelum diskon
-            $table->decimal('discount', 12, 2)->default(0); // diskon nominal
-            $table->decimal('tax', 12, 2)->default(0); // pajak (PPN, opsional)
-            $table->decimal('total', 12, 2); // total akhir yang harus dibayar
-            $table->decimal('paid', 12, 2)->default(0); // uang yang dibayarkan
-            $table->decimal('change', 12, 2)->default(0); // kembalian
+            $table->decimal('subtotal', 12, 2);
+            $table->decimal('discount', 12, 2)->default(0);
+            $table->decimal('tax', 12, 2)->default(0);
+            $table->decimal('total', 12, 2);
+            $table->decimal('paid', 12, 2)->default(0);
+            $table->decimal('change', 12, 2)->default(0);
 
-            $table->string('status')->default('paid'); // paid, pending, cancelled
-            $table->text('notes')->nullable(); // catatan kasir
+            $table->string('status')->default('paid');
+            $table->text('notes')->nullable();
 
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('sales');

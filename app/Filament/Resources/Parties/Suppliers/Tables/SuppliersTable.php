@@ -7,7 +7,9 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SuppliersTable
 {
@@ -15,8 +17,6 @@ class SuppliersTable
     {
         return $table
             ->columns([
-                TextColumn::make('uuid')
-                    ->label('UUID'),
                 TextColumn::make('tenant.name')
                     ->searchable(),
                 TextColumn::make('name')
@@ -45,7 +45,9 @@ class SuppliersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Filter::make('has_transactions')
+                    ->label('Pernah Transaksi')
+                    ->query(fn(Builder $query) => $query->has('purchase')),
             ])
             ->recordActions([
                 EditAction::make(),

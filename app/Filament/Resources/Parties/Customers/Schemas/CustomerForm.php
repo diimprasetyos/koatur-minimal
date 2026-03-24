@@ -2,7 +2,10 @@
 
 namespace App\Filament\Resources\Parties\Customers\Schemas;
 
+use Filament\Facades\Filament;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -15,39 +18,28 @@ class CustomerForm
     {
         return $schema
             ->components([
-                Section::make()->schema([
-                    TextInput::make('name')
-                        ->label('Nama Pelanggan')
-                        ->required()
-                        ->maxLength(100)
-                        ->columnSpan(2),
-
-                    TextInput::make('phone')
-                        ->label('No. HP / WhatsApp')
-                        ->tel()
-                        ->maxLength(20)
-                        ->nullable(),
-
-                    TextInput::make('email')
-                        ->label('Email')
-                        ->email()
-                        ->maxLength(100)
-                        ->nullable(),
-
-                    Textarea::make('address')
-                        ->label('Alamat')
-                        ->rows(3)
-                        ->nullable()
-                        ->columnSpan(2),
-
-                    TextInput::make('loyalty_points')
-                        ->label('Poin Loyalty')
-                        ->numeric()
-                        ->default(0)
-                        ->minValue(0)
-                        ->helperText('Tambah/kurangi poin secara manual')
-                        ->columnSpan(2),
-                ])->columns(2),
+                Hidden::make('tenant_id')
+                    ->default(fn() => Filament::getTenant()?->id)
+                    ->required(),
+                TextInput::make('name')
+                    ->required(),
+                TextInput::make('code'),
+                TextInput::make('phone')
+                    ->tel(),
+                TextInput::make('email')
+                    ->label('Email address')
+                    ->email(),
+                Textarea::make('address')
+                    ->columnSpanFull(),
+                TextInput::make('contact_person'),
+                TextInput::make('payable_amount')
+                    ->required()
+                    ->numeric()
+                    ->default(0),
+                Toggle::make('is_active')
+                    ->required(),
+                Textarea::make('notes')
+                    ->columnSpanFull(),
             ]);
     }
 }

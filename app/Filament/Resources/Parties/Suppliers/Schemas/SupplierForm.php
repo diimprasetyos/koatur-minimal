@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Parties\Suppliers\Schemas;
 
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -14,11 +16,8 @@ class SupplierForm
     {
         return $schema
             ->components([
-                TextInput::make('uuid')
-                    ->label('UUID')
-                    ->required(),
-                Select::make('tenant_id')
-                    ->relationship('tenant', 'name')
+                Hidden::make('tenant_id')
+                    ->default(fn() => Filament::getTenant()?->id)
                     ->required(),
                 TextInput::make('name')
                     ->required(),

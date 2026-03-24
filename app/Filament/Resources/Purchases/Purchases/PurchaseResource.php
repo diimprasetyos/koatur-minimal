@@ -9,16 +9,23 @@ use App\Filament\Resources\Purchases\Purchases\Schemas\PurchaseForm;
 use App\Filament\Resources\Purchases\Purchases\Tables\PurchasesTable;
 use App\Models\Purchases\Purchase;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 class PurchaseResource extends Resource
 {
     protected static ?string $model = Purchase::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Banknotes;
+
+    protected static ?string $navigationLabel = 'Pembelian';
+
+    protected static string | UnitEnum | null $navigationGroup = 'Transaksi';
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -46,5 +53,13 @@ class PurchaseResource extends Resource
             'create' => CreatePurchase::route('/create'),
             'edit' => EditPurchase::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('tenant_id', Filament::getTenant()?->id)
+            ->with(['supplier', 'user', 'items.product'])
+            ->withCount('items');
     }
 }

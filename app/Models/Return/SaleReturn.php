@@ -44,19 +44,22 @@ class SaleReturn extends Model
         static::creating(function (self $model) {
             $model->uuid             ??= Str::uuid();
             $model->reference_number ??= self::generateReferenceNumber($model->tenant_id);
+            $model->user_id          ??= auth()->id();
         });
 
-        // Otomatis restock saat return diapprove
+        // FIX: Jangan panggil processReturn di 'created' karena items belum tersimpan.
+        // processReturn dipanggil manual dari CreateSaleReturn page setelah items tersimpan,
+        // ATAU otomatis saat status diubah ke approved di 'updated'.
         static::updated(function (self $model) {
             if ($model->wasChanged('status') && $model->status === self::STATUS_APPROVED) {
-                $model->processReturn();
-            }
-        });
+                // Cek dulu apakah sudah pernah diproses
+                $alreadyProcessed = StockMovement::where('reference_type', 'sale_return')
+                    ->where('reference_id', $model->id)
+                    ->exists();
 
-        // Jika langsung approved saat create
-        static::created(function (self $model) {
-            if ($model->status === self::STATUS_APPROVED) {
-                $model->processReturn();
+                if (!$alreadyProcessed) {
+                    $model->processReturn();
+                }
             }
         });
     }
@@ -67,14 +70,17 @@ class SaleReturn extends Model
     {
         return $this->belongsTo(Tenant::class);
     }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
+
     public function sale(): BelongsTo
     {
         return $this->belongsTo(Sale::class);
     }
+
     public function items(): HasMany
     {
         return $this->hasMany(SaleReturnItem::class);
@@ -93,19 +99,53 @@ class SaleReturn extends Model
     }
 
     /**
-     * Otomatis restock produk yang diretur
+     * Restock produk yang diretur customer.
+     * Dipanggil manual dari CreateSaleReturn::afterCreate() atau saat status → approved.
      */
     public function processReturn(): void
     {
+        // Guard: jangan proses jika sudah pernah
+        $alreadyProcessed = StockMovement::where('reference_type', 'sale_return')
+            ->where('reference_id', $this->id)
+            ->exists();
+
+        if ($alreadyProcessed) {
+            return;
+        }
+
         DB::transaction(function () {
             foreach ($this->items as $item) {
-                $product     = $item->product;
-                $stockBefore = $product->stock;
+                $product = $item->product;
 
+                if (!$product->track_stock) {
+                    continue;
+                }
+
+                $stockBefore = $product->stock;
                 $product->increment('stock', $item->qty);
 
-                StockMovement::recordSaleReturn($item, $stockBefore);
+                StockMovement::create([
+                    'tenant_id'      => $this->tenant_id,
+                    'product_id'     => $item->product_id,
+                    'user_id'        => $this->user_id,
+                    'reference_type' => 'sale_return',
+                    'reference_id'   => $this->id,
+                    'type'           => StockMovement::TYPE_IN,
+                    'qty'            => $item->qty,
+                    'stock_before'   => $stockBefore,
+                    'stock_after'    => $stockBefore + $item->qty,
+                    'notes'          => 'Retur Penjualan #' . $this->reference_number,
+                ]);
             }
         });
+    }
+
+    /**
+     * Recalculate total_refund dari items
+     */
+    public function recalculate(): void
+    {
+        $this->total_refund = $this->items->sum('subtotal');
+        $this->save();
     }
 }

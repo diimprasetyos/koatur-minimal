@@ -18,9 +18,14 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
 
             $table->string('name');
+            $table->string('code')->nullable()->unique();   // kode supplier internal
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
             $table->text('address')->nullable();
+            $table->string('contact_person')->nullable();  // nama PIC
+            $table->decimal('payable_amount', 12, 2)->default(0); // akumulasi hutang
+            $table->boolean('is_active')->default(true);
+            $table->text('notes')->nullable();
 
             $table->timestamps();
         });

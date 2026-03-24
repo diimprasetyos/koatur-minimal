@@ -7,18 +7,23 @@ use App\Filament\Resources\Expenses\ExpenseCategories\Pages\EditExpenseCategory;
 use App\Filament\Resources\Expenses\ExpenseCategories\Pages\ListExpenseCategories;
 use App\Filament\Resources\Expenses\ExpenseCategories\Schemas\ExpenseCategoryForm;
 use App\Filament\Resources\Expenses\ExpenseCategories\Tables\ExpenseCategoriesTable;
-use App\Models\Expenses\ExepenseCategory;
+use App\Models\Expenses\ExpenseCategory;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class ExpenseCategoryResource extends Resource
 {
-    protected static ?string $model = ExepenseCategory::class;
+    protected static ?string $model = ExpenseCategory::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ListBullet;
+
+    protected static ?string $navigationLabel = 'Kategori Pengeluaran';
+
+    protected static string | UnitEnum | null $navigationGroup = 'Pengeluaran';
 
     protected static ?string $recordTitleAttribute = 'name';
 

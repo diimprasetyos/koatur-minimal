@@ -9,16 +9,23 @@ use App\Filament\Resources\Return\SaleReturns\Schemas\SaleReturnForm;
 use App\Filament\Resources\Return\SaleReturns\Tables\SaleReturnsTable;
 use App\Models\Return\SaleReturn;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 class SaleReturnResource extends Resource
 {
     protected static ?string $model = SaleReturn::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ReceiptRefund;
+
+    protected static ?string $navigationLabel = 'Retur Penjualan';
+
+    protected static string | UnitEnum | null $navigationGroup = 'Transaksi';
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -46,5 +53,13 @@ class SaleReturnResource extends Resource
             'create' => CreateSaleReturn::route('/create'),
             'edit' => EditSaleReturn::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['sale', 'user'])
+            ->withCount('items')
+            ->where('tenant_id', Filament::getTenant()?->id);
     }
 }

@@ -22,7 +22,7 @@ class CategoryResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::ListBullet;
 
-    protected static ?string $navigationLabel = 'Kategori';
+    protected static ?string $navigationLabel = 'Kategori Produk';
 
     protected static string | UnitEnum | null $navigationGroup = 'Produk';
 

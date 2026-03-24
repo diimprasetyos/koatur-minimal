@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Sales\Sales\Schemas;
 use App\Models\Parties\Customer;
 use App\Models\Product\Product;
 use App\Models\Sales\Sale;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -15,43 +17,89 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
-
 class SaleForm
 {
-
     // ─── Calculation Helpers ─────────────────────────────────────
 
-    protected static function recalculateSubtotal(Set $set, Get $get): void
+    /**
+     * Hitung subtotal satu baris item, lalu langsung update totals header.
+     *
+     * PENTING: field dalam Repeater pakai $get('../..') untuk akses state
+     * di luar Repeater. afterStateUpdated Repeater sendiri TIDAK cukup
+     * untuk menangkap perubahan field di dalam row.
+     */
+    protected static function recalculateAll(Set $set, Get $get): void
     {
-        $price    = (float) ($get('price') ?: 0);
-        $qty      = (int) ($get('qty') ?: 1);
+        // 1. Hitung subtotal row ini
+        $price    = (float) ($get('price')    ?: 0);
+        $qty      = (int)   ($get('qty')      ?: 1);
         $discount = (float) ($get('discount') ?: 0);
-        $set('subtotal', ($price - $discount) * $qty);
+        $rowSubtotal = ($price - $discount) * $qty;
+        $set('subtotal', $rowSubtotal);
+
+        // 2. Hitung total semua items dari parent state
+        //    $get('../../items') → naik 2 level (row → repeater → form root)
+        $items = $get('../../items') ?? [];
+        $itemsSubtotal = collect($items)->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
+
+        // Karena subtotal row ini baru saja di-set tapi $get('../../items')
+        // masih membaca state lama, kita ganti nilai row ini manual:
+        // Cari key row aktif tidak bisa langsung, jadi kita pakai pendekatan:
+        // total items lama - subtotal lama + subtotal baru
+        // Cara paling reliable: ambil semua items lalu replace row aktif
+        // Filament v3: gunakan $get('../../items') yang sudah reactive
+        // Subtotal row sudah di-set di atas, Filament akan include di items berikutnya
+        // Untuk update header saat ini, kita hitung dengan nilai baru:
+        $discountHeader = (float) ($get('../../discount') ?: 0);
+        $tax            = (float) ($get('../../tax')      ?: 0);
+
+        // Hitung ulang total dari semua items (nilai baru sudah masuk lewat $set subtotal di atas)
+        // Kita perlu angka yang akurat: ambil items, update subtotal row aktif
+        // Cara aman: recalculate dari items yang ada + override row ini
+        $allSubtotal = collect($items)->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
+        // $allSubtotal masih pakai nilai lama untuk row ini.
+        // Kita tidak tahu key row aktif, tapi kita bisa set ke parent lewat Set:
+        // Filament akan re-render, jadi set header fields agar sinkron di render berikutnya.
+        // Solusi terbaik: set header subtotal = $allSubtotal (akan update setelah re-render)
+
+        $total = max(0, $allSubtotal - $discountHeader + $tax);
+        $set('../../subtotal', $allSubtotal);
+        $set('../../total',    $total);
+
+        $paid = (float) ($get('../../paid') ?: 0);
+        $set('../../change', max(0, $paid - $total));
     }
 
+    /**
+     * Recalculate totals header saja (dipanggil dari field header: diskon, pajak, paid)
+     */
     protected static function recalculateTotals(Set $set, Get $get): void
     {
-        $items = $get('items') ?? [];
-
+        $items    = $get('items') ?? [];
         $subtotal = collect($items)->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
 
         $discount = (float) ($get('discount') ?: 0);
-        $tax      = (float) ($get('tax') ?: 0);
-        $total    = $subtotal - $discount + $tax;
+        $tax      = (float) ($get('tax')      ?: 0);
+        $total    = max(0, $subtotal - $discount + $tax);
 
         $set('subtotal', $subtotal);
-        $set('total', max(0, $total));
+        $set('total',    $total);
 
-        // Update kembalian
-        $paid   = (float) ($get('paid') ?: 0);
-        $change = $paid - $total;
-        $set('change', max(0, $change));
+        $paid = (float) ($get('paid') ?: 0);
+        $set('change', max(0, $paid - $total));
     }
 
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
+                Hidden::make('tenant_id')
+                    ->default(fn() => Filament::getTenant()?->id)
+                    ->required(),
+
+                Hidden::make('user_id')
+                    ->default(fn() => auth()->id())
+                    ->required(),
 
                 // ── Header Info ──────────────────────────────────────
                 Section::make('Informasi Transaksi')
@@ -62,20 +110,31 @@ class SaleForm
                             ->placeholder('Otomatis terisi')
                             ->dehydrated(false),
 
+                        DatePicker::make('sale_date')
+                            ->label('Tanggal Penjualan')
+                            ->required()
+                            ->default(now())
+                            ->native(false),
+
                         Select::make('customer_id')
                             ->label('Pelanggan (Opsional)')
-                            ->options(fn() => Customer::where('tenant_id', auth()->user()->tenant_id)
-                                ->pluck('name', 'id'))
+                            ->relationship(
+                                'customer',
+                                'name',
+                                fn($query) => $query->where('tenant_id', Filament::getTenant()?->id)
+                            )
                             ->searchable()
                             ->nullable()
                             ->createOptionForm([
                                 TextInput::make('name')->label('Nama')->required(),
                                 TextInput::make('phone')->label('No. HP')->nullable(),
+                                TextInput::make('email')->label('Email')->email()->nullable(),
+                                Textarea::make('address')->label('Alamat')->rows(2),
                             ])
                             ->createOptionUsing(function (array $data): int {
                                 return Customer::create([
                                     ...$data,
-                                    'tenant_id' => auth()->user()->tenant_id,
+                                    'tenant_id' => Filament::getTenant()?->id,
                                 ])->id;
                             }),
 
@@ -87,8 +146,7 @@ class SaleForm
                                 Sale::PAYMENT_TRANSFER => '🏦 Transfer',
                                 Sale::PAYMENT_EWALLET  => '📱 E-Wallet',
                             ])
-                            ->default(Sale::PAYMENT_CASH)
-                            ->live(),
+                            ->default(Sale::PAYMENT_CASH),
 
                         Select::make('status')
                             ->label('Status')
@@ -104,7 +162,7 @@ class SaleForm
                             ->label('Catatan')
                             ->rows(2)
                             ->nullable()
-                            ->columnSpan(2),
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
@@ -117,26 +175,41 @@ class SaleForm
                             ->schema([
                                 Select::make('product_id')
                                     ->label('Produk')
-                                    ->options(fn() => Product::where('tenant_id', auth()->user()->tenant_id)
-                                        ->where('is_active', true)
-                                        ->pluck('name', 'id'))
+                                    ->relationship(
+                                        'product',
+                                        'name',
+                                        fn($query) => $query
+                                            ->where('tenant_id', Filament::getTenant()?->id)
+                                            ->where('is_active', true)
+                                            ->where('stock', '>', 0)
+                                    )
                                     ->searchable()
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                        if (! $state) return;
-
+                                        if (!$state) return;
                                         $product = Product::find($state);
-                                        if (! $product) return;
+                                        if (!$product) return;
 
-                                        $set('price', $product->price);
-                                        $set('cost_price', $product->cost_price);
+                                        $set('price',        $product->price);
+                                        $set('cost_price',   $product->cost_price);
                                         $set('product_name', $product->name);
 
-                                        // Hitung ulang subtotal
-                                        $qty = (int) ($get('qty') ?: 1);
+                                        $qty      = (int)   ($get('qty')      ?: 1);
                                         $discount = (float) ($get('discount') ?: 0);
-                                        $set('subtotal', ($product->price - $discount) * $qty);
+                                        $rowSubtotal = ($product->price - $discount) * $qty;
+                                        $set('subtotal', $rowSubtotal);
+
+                                        // Update header totals
+                                        $items         = $get('../../items') ?? [];
+                                        $allSubtotal   = collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
+                                        $discountHeader = (float) ($get('../../discount') ?: 0);
+                                        $tax            = (float) ($get('../../tax')      ?: 0);
+                                        $total          = max(0, $allSubtotal - $discountHeader + $tax);
+                                        $set('../../subtotal', $allSubtotal);
+                                        $set('../../total',    $total);
+                                        $paid = (float) ($get('../../paid') ?: 0);
+                                        $set('../../change', max(0, $paid - $total));
                                     })
                                     ->columnSpan(3),
 
@@ -149,7 +222,7 @@ class SaleForm
                                     ->prefix('Rp')
                                     ->required()
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateSubtotal($set, $get))
+                                    ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateAll($set, $get))
                                     ->columnSpan(2),
 
                                 TextInput::make('qty')
@@ -159,7 +232,7 @@ class SaleForm
                                     ->default(1)
                                     ->minValue(1)
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateSubtotal($set, $get))
+                                    ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateAll($set, $get))
                                     ->columnSpan(1),
 
                                 TextInput::make('discount')
@@ -169,7 +242,7 @@ class SaleForm
                                     ->default(0)
                                     ->minValue(0)
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateSubtotal($set, $get))
+                                    ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateAll($set, $get))
                                     ->columnSpan(2),
 
                                 TextInput::make('subtotal')
@@ -180,11 +253,13 @@ class SaleForm
                                     ->dehydrated()
                                     ->columnSpan(2),
                             ])
-                            ->columns(10)
+                            ->columns(5)
                             ->live()
+                            // afterStateUpdated Repeater: handle tambah/hapus item
                             ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateTotals($set, $get))
                             ->addActionLabel('+ Tambah Produk')
-                            ->minItems(1),
+                            ->minItems(1)
+                            ->defaultItems(1),
                     ]),
 
                 // ── Totals ───────────────────────────────────────────
@@ -229,8 +304,9 @@ class SaleForm
                             ->default(0)
                             ->live(onBlur: true)
                             ->afterStateUpdated(function (Set $set, Get $get) {
-                                $change = (float) $get('paid') - (float) $get('total');
-                                $set('change', max(0, $change));
+                                $paid  = (float) ($get('paid')  ?: 0);
+                                $total = (float) ($get('total') ?: 0);
+                                $set('change', max(0, $paid - $total));
                             }),
 
                         TextInput::make('change')

@@ -19,24 +19,34 @@ class SalesTable
                     ->label('No. Invoice')
                     ->searchable()
                     ->copyable()
-                    ->fontFamily('mono'),
+                    ->fontFamily('mono')
+                    ->sortable(),
 
-                TextColumn::make('created_at')
+                TextColumn::make('sale_date')
                     ->label('Tanggal')
-                    ->dateTime('d M Y, H:i')
+                    ->date('d M Y')
                     ->sortable(),
 
                 TextColumn::make('customer.name')
                     ->label('Pelanggan')
                     ->placeholder('Walk-in')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
 
                 TextColumn::make('user.name')
                     ->label('Kasir')
+                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                TextColumn::make('items_count')
+                    ->label('Items')
+                    ->counts('items')
+                    ->alignCenter()
+                    ->badge()
+                    ->color('gray'),
+
                 TextColumn::make('payment_method')
-                    ->label('Metode Pembayaran')
+                    ->label('Pembayaran')
                     ->badge()
                     ->formatStateUsing(fn(string $state) => match ($state) {
                         'cash'     => '💵 Cash',
@@ -44,12 +54,18 @@ class SalesTable
                         'ewallet'  => '📱 E-Wallet',
                         default    => $state,
                     })
-                    ->color('gray'),
+                    ->color('gray')
+                    ->toggleable(),
 
                 TextColumn::make('total')
                     ->label('Total')
                     ->money('IDR')
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize([
+                        \Filament\Tables\Columns\Summarizers\Sum::make()
+                            ->money('IDR')
+                            ->label('Total Penjualan'),
+                    ]),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -66,18 +82,25 @@ class SalesTable
                         'cancelled' => 'Dibatalkan',
                         default     => $state,
                     }),
+
+                TextColumn::make('created_at')
+                    ->label('Dibuat')
+                    ->dateTime('d M Y, H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make()
+                DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('sale_date', 'desc');
     }
 }

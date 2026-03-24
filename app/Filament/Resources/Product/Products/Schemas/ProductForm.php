@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\Product\Products\Schemas;
 
 use App\Models\Product\Category;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -18,8 +20,12 @@ class ProductForm
     {
         return $schema
             ->components([
+
                 Section::make('Informasi Produk')
                     ->schema([
+                        Hidden::make('tenant_id')
+                            ->default(fn() => Filament::getTenant()?->id)
+                            ->required(),
                         TextInput::make('name')
                             ->label('Nama Produk')
                             ->required()

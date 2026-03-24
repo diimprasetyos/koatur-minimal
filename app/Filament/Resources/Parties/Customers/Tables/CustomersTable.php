@@ -20,53 +20,45 @@ class CustomersTable
     {
         return $table
             ->columns([
+                TextColumn::make('tenant.name')
+                    ->searchable(),
                 TextColumn::make('name')
-                    ->label('Nama')
-                    ->searchable()
-                    ->sortable(),
-
+                    ->searchable(),
+                TextColumn::make('code')
+                    ->searchable(),
                 TextColumn::make('phone')
-                    ->label('No. HP')
-                    ->placeholder('—')
-                    ->copyable(),
-
+                    ->searchable(),
                 TextColumn::make('email')
-                    ->label('Email')
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('sales_count')
-                    ->label('Total Transaksi')
-                    ->counts('sales')
-                    ->badge()
-                    ->color('primary'),
-
-                TextColumn::make('loyalty_points')
-                    ->label('Poin')
-                    ->badge()
-                    ->color('warning'),
-
+                    ->label('Email address')
+                    ->searchable(),
+                TextColumn::make('contact_person')
+                    ->searchable(),
+                TextColumn::make('payable_amount')
+                    ->numeric()
+                    ->sortable(),
+                IconColumn::make('is_active')
+                    ->boolean(),
                 TextColumn::make('created_at')
-                    ->label('Bergabung')
-                    ->date('d M Y')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
+                    ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-
             ->filters([
                 Filter::make('has_transactions')
                     ->label('Pernah Transaksi')
-                    ->query(fn (Builder $query) => $query->has('sales')),
+                    ->query(fn(Builder $query) => $query->has('purchase')),
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
             ]);
-
     }
 }
