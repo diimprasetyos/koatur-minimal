@@ -31,11 +31,13 @@ class StockAdjustmentItem extends Model
     protected static function booted(): void
     {
         static::saving(function (self $item) {
-            $item->qty_difference = $item->stock_after - $item->stock_before;
+            // Auto-hitung qty_difference dan type dari stock_before & stock_after
+            $diff = $item->stock_after - $item->stock_before;
+            $item->qty_difference = $diff;
             $item->type = match (true) {
-                $item->qty_difference > 0 => 'add',
-                $item->qty_difference < 0 => 'subtract',
-                default                   => 'set',
+                $diff > 0 => 'add',
+                $diff < 0 => 'subtract',
+                default   => 'set',
             };
         });
     }
@@ -50,5 +52,16 @@ class StockAdjustmentItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────
+
+    public function getTypeLabel(): string
+    {
+        return match ($this->type) {
+            'add'      => '+ Penambahan',
+            'subtract' => '- Pengurangan',
+            default    => '= Set Langsung',
+        };
     }
 }

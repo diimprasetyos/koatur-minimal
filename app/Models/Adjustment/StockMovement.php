@@ -12,15 +12,22 @@ class StockMovement extends Model
 {
     /**
      * Tabel stock_movements hanya punya created_at, TIDAK ada updated_at.
-     * Matikan auto-timestamp Laravel, lalu set CREATED_AT manual.
      */
     public $timestamps = false;
 
-    const CREATED_AT = 'created_at'; // kolom ini ada di tabel
-    const UPDATED_AT = null;         // kolom ini TIDAK ada, jangan di-set
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = null;
 
     const TYPE_IN  = 'in';
     const TYPE_OUT = 'out';
+
+    // FIX: tambahkan konstanta REF_ADJUSTMENT yang dipakai StockAdjustment
+    const REF_SALE             = 'sale';
+    const REF_PURCHASE         = 'purchase';
+    const REF_SALE_RETURN      = 'sale_return';
+    const REF_PURCHASE_RETURN  = 'purchase_return';
+    const REF_ADJUSTMENT       = 'adjustment';
+    const REF_SALE_CANCELLED   = 'sale_cancelled';
 
     protected $fillable = [
         'tenant_id',
@@ -45,7 +52,6 @@ class StockMovement extends Model
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            // Set created_at secara manual karena $timestamps = false
             $model->created_at = now();
         });
     }
