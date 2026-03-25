@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\RevenueStatsWidget;
+use App\Filament\Widgets\SalesChartWidget;
 use App\Models\Tenant;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -45,6 +47,8 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 FilamentInfoWidget::class,
+                RevenueStatsWidget::class,
+                SalesChartWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

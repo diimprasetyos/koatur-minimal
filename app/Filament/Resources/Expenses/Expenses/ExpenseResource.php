@@ -19,11 +19,11 @@ class ExpenseResource extends Resource
 {
     protected static ?string $model = Expense::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArchiveBoxArrowDown;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::BarsArrowUp;
 
     protected static ?string $navigationLabel = 'Pengeluaran';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Pengeluaran';
+    protected static string|UnitEnum|null $navigationGroup = 'Pengeluaran';
 
     protected static ?string $recordTitleAttribute = 'name';
 
