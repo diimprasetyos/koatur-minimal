@@ -23,9 +23,14 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Pengguna';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Pengelolaan';
+    protected static string|UnitEnum|null $navigationGroup = 'Pengelolaan';
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
 
     public static function form(Schema $schema): Schema
     {

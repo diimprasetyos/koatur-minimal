@@ -32,10 +32,20 @@ class Tenant extends Model
         'is_active' => 'boolean',
     ];
 
-    public static function bootTenant(): void
+    protected static function boot(): void
     {
+        parent::boot(); // wajib dipanggil
+
         static::creating(function (self $model) {
+            // Generate slug dari name jika belum diisi.
             if (empty($model->slug)) {
+                $model->slug = Str::slug($model->name);
+            }
+        });
+
+        static::updating(function (self $model) {
+            // Jika name berubah dan slug masih kosong/null, regenerate.
+            if ($model->isDirty('name') && empty($model->slug)) {
                 $model->slug = Str::slug($model->name);
             }
         });

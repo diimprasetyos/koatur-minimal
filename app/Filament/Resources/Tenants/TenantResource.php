@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class TenantResource extends Resource
@@ -23,9 +24,25 @@ class TenantResource extends Resource
 
     protected static ?string $navigationLabel = 'Tenant';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Pengelolaan';
-
+    protected static string|UnitEnum|null $navigationGroup = 'Pengelolaan';
     protected static ?string $recordTitleAttribute = 'name';
+    protected static bool $isScopedToTenant = false;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $user = auth()->user();
+
+        // Jika super admin, tampilkan semua tenant tanpa filter.
+        if ($user->is_super_admin ?? false) {
+            return parent::getEloquentQuery();
+        }
+
+        // User biasa: hanya tenant yang dia assign/miliki.
+        return parent::getEloquentQuery()
+            ->whereHas('users', function (Builder $query) use ($user) {
+                $query->where('users.id', $user->id);
+            });
+    }
 
     public static function form(Schema $schema): Schema
     {

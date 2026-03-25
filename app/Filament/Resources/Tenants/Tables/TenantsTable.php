@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Tenants\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -18,8 +19,18 @@ class TenantsTable
                     ->label('UUID'),
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('slug')
+                    ->searchable(),
+                TextColumn::make('phone')
+                    ->searchable(),
+                TextColumn::make('address')
+                    ->searchable(),
+                TextColumn::make('logo')
+                    ->searchable(),
                 TextColumn::make('subscription_plan')
                     ->searchable(),
+                IconColumn::make('is_active')
+                    ->boolean(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
