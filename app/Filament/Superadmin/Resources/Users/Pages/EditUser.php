@@ -11,18 +11,6 @@ class EditUser extends EditRecord
 {
     protected static string $resource = UserResource::class;
 
-    protected function afterSave(): void
-    {
-        $user = $this->getRecord();
-
-        // Sync pivot jika tenant_id berubah
-        if ($user->tenant_id) {
-            Tenant::find($user->tenant_id)
-                ?->users()
-                ->syncWithoutDetaching([$user->id]);
-        }
-    }
-
     protected function getHeaderActions(): array
     {
         return [

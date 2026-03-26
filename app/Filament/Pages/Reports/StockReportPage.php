@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Reports;
 
 use App\Models\Product\Product;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -36,7 +37,7 @@ class StockReportPage extends Page implements HasTable
         return $table
             ->query(
                 Product::query()
-                    ->where('tenant_id', auth()->user()->tenant_id)
+                    ->where('tenant_id', Filament::getTenant()?->id)
                     ->where('is_active', true)
                     ->with('category')
             )

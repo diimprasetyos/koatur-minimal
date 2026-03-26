@@ -23,13 +23,13 @@ class TenantForm
                     ->required()
                     ->maxLength(100)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(fn (Set $set, ?string $state) =>
+                    ->afterStateUpdated(
+                        fn(Set $set, ?string $state) =>
                         $set('slug', Str::slug($state ?? ''))
                     ),
 
                 TextInput::make('slug')
                     ->label('Slug')
-                    ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(100)
                     ->helperText('Digunakan sebagai URL: /admin/{slug}'),
@@ -46,9 +46,9 @@ class TenantForm
                 Select::make('subscription_plan')
                     ->label('Paket Langganan')
                     ->options([
-                        'free'  => 'Free',
+                        'free' => 'Free',
                         'basic' => 'Basic',
-                        'pro'   => 'Pro',
+                        'pro' => 'Pro',
                     ])
                     ->default('free')
                     ->required(),

@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Sales\Sale;
+use Filament\Facades\Filament;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Carbon;
 
@@ -27,7 +28,7 @@ class SalesChartWidget extends Widget
 
     protected function getData(): array
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Filament::getTenant()?->id;
 
         if ($this->filter === 'monthly') {
             return $this->getMonthlyData($tenantId);

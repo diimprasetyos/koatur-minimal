@@ -31,14 +31,16 @@ class UserForm
                 TextInput::make('password')
                     ->label('Password')
                     ->password()
-                    ->dehydrateStateUsing(fn ($state) => Hash::make($state))
-                    ->dehydrated(fn ($state) => filled($state))
-                    ->required(fn (string $operation) => $operation === 'create')
+                    ->dehydrateStateUsing(fn($state) => Hash::make($state))
+                    ->dehydrated(fn($state) => filled($state))
+                    ->required(fn(string $operation) => $operation === 'create')
                     ->helperText('Kosongkan jika tidak ingin mengubah password'),
 
-                Select::make('tenant_id')
+                Select::make('tenants')
                     ->label('Tenant')
-                    ->options(Tenant::pluck('name', 'id'))
+                    ->relationship('tenants', 'name')
+                    ->multiple()
+                    ->preload()
                     ->searchable()
                     ->nullable()
                     ->helperText('Kosongkan untuk Super Admin'),

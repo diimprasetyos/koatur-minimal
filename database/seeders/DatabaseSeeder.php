@@ -23,10 +23,9 @@ class DatabaseSeeder extends Seeder
         $superAdmin = User::firstOrCreate(
             ['email' => 'admin@test.com'],
             [
-                'uuid'      => Str::uuid(),
-                'name'      => 'Super Admin',
-                'password'  => Hash::make('admin123'),
-                'tenant_id' => null, // ← null, sengaja
+                'uuid' => Str::uuid(),
+                'name' => 'Super Admin',
+                'password' => Hash::make('admin123'),
                 'is_active' => true,
             ]
         );
@@ -36,12 +35,12 @@ class DatabaseSeeder extends Seeder
         $tenant = Tenant::firstOrCreate(
             ['slug' => 'demo-store'],
             [
-                'uuid'              => Str::uuid(),
-                'name'              => 'Demo Store',
-                'slug'              => 'demo-store',
-                'phone'             => '081234567890',
+                'uuid' => Str::uuid(),
+                'name' => 'Demo Store',
+                'slug' => 'demo-store',
+                'phone' => '081234567890',
                 'subscription_plan' => 'basic',
-                'is_active'         => true,
+                'is_active' => true,
             ]
         );
 
@@ -49,10 +48,9 @@ class DatabaseSeeder extends Seeder
         $owner = User::firstOrCreate(
             ['email' => 'owner@test.com'],
             [
-                'uuid'      => Str::uuid(),
-                'name'      => 'Owner',
-                'password'  => Hash::make('owner123'),
-                'tenant_id' => $tenant->id,
+                'uuid' => Str::uuid(),
+                'name' => 'Owner',
+                'password' => Hash::make('owner123'),
                 'is_active' => true,
             ]
         );
@@ -60,10 +58,9 @@ class DatabaseSeeder extends Seeder
         $manager = User::firstOrCreate(
             ['email' => 'manager@test.com'],
             [
-                'uuid'      => Str::uuid(),
-                'name'      => 'Manager',
-                'password'  => Hash::make('manager123'),
-                'tenant_id' => $tenant->id,
+                'uuid' => Str::uuid(),
+                'name' => 'Manager',
+                'password' => Hash::make('manager123'),
                 'is_active' => true,
             ]
         );
@@ -71,10 +68,9 @@ class DatabaseSeeder extends Seeder
         $kasir = User::firstOrCreate(
             ['email' => 'kasir@test.com'],
             [
-                'uuid'      => Str::uuid(),
-                'name'      => 'Kasir',
-                'password'  => Hash::make('kasir123'),
-                'tenant_id' => $tenant->id,
+                'uuid' => Str::uuid(),
+                'name' => 'Kasir',
+                'password' => Hash::make('kasir123'),
                 'is_active' => true,
             ]
         );
@@ -97,10 +93,10 @@ class DatabaseSeeder extends Seeder
         $this->command->table(
             ['Role', 'Panel', 'Email', 'Password'],
             [
-                ['super_admin', '/superadmin', 'admin@test.com',   'admin123'],
-                ['owner',       '/admin',      'owner@test.com',   'owner123'],
-                ['manager',     '/admin',      'manager@test.com', 'manager123'],
-                ['kasir',       '/admin',      'kasir@test.com',   'kasir123'],
+                ['super_admin', '/superadmin', 'admin@test.com', 'admin123'],
+                ['owner', '/admin', 'owner@test.com', 'owner123'],
+                ['manager', '/admin', 'manager@test.com', 'manager123'],
+                ['kasir', '/admin', 'kasir@test.com', 'kasir123'],
             ]
         );
     }

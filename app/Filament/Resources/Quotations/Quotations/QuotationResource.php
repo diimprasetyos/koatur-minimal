@@ -9,6 +9,7 @@ use App\Filament\Resources\Quotations\Quotations\Schemas\QuotationForm;
 use App\Filament\Resources\Quotations\Quotations\Tables\QuotationsTable;
 use App\Models\Quotations\Quotation;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -65,6 +66,6 @@ class QuotationResource extends Resource
         return parent::getEloquentQuery()
             ->with(['customer', 'user'])
             ->withCount('items')
-            ->where('tenant_id', auth()->user()->tenant_id);
+            ->where('tenant_id', Filament::getTenant()?->id);
     }
 }

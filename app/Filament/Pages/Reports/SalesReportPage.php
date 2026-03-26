@@ -5,6 +5,7 @@ namespace App\Filament\Pages\Reports;
 use App\Models\Sales\Sale;
 use BackedEnum;
 
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -64,7 +65,7 @@ class SalesReportPage extends Page implements HasTable
 
     protected function getFilteredQuery(): Builder
     {
-        return Sale::where('tenant_id', auth()->user()->tenant_id)
+        return Sale::where('tenant_id', Filament::getTenant()?->id)
             ->where('status', 'paid');
     }
 
@@ -75,7 +76,7 @@ class SalesReportPage extends Page implements HasTable
         return $table
             ->query(
                 Sale::query()
-                    ->where('tenant_id', auth()->user()->tenant_id)
+                    ->where('tenant_id', Filament::getTenant()?->id)
                     ->where('status', 'paid')
                     ->with(['user', 'customer', 'items'])
                     ->latest()

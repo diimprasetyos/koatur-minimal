@@ -27,7 +27,7 @@ class ExpenseForm
                 Select::make('expense_category_id')
                     ->label('Kategori')
                     ->options(function () {
-                        return ExpenseCategory::where('tenant_id', auth()->user()->tenant_id)
+                        return ExpenseCategory::where('tenant_id', Filament::getTenant()?->id)
                             ->pluck('name', 'id');
                     })
                     ->searchable()
@@ -42,9 +42,9 @@ class ExpenseForm
                     ->required(),
                 Select::make('payment_method')
                     ->options([
-                        'cash'     => '💵 Cash',
+                        'cash' => '💵 Cash',
                         'transfer' => '🏦 Transfer',
-                        'ewallet'  => '📱 E-Wallet',
+                        'ewallet' => '📱 E-Wallet',
                     ]),
                 Textarea::make('notes')
                     ->columnSpanFull(),

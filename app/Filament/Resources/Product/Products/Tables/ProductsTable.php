@@ -59,10 +59,10 @@ class ProductsTable
                     ->sortable()
                     ->badge()
                     ->color(fn(Product $record): string => match (true) {
-                        ! $record->track_stock   => 'gray',
-                        $record->stock <= 0      => 'danger',
-                        $record->stock <= 5      => 'warning',
-                        default                  => 'success',
+                        !$record->track_stock => 'gray',
+                        $record->stock <= 0 => 'danger',
+                        $record->stock <= 5 => 'warning',
+                        default => 'success',
                     })
                     ->formatStateUsing(fn(Product $record): string => $record->track_stock ? (string) $record->stock : '∞'),
 
@@ -73,7 +73,7 @@ class ProductsTable
             ->filters([
                 SelectFilter::make('category_id')
                     ->label('Kategori')
-                    ->options(fn() => Category::where('tenant_id', auth()->user()->tenant_id)->pluck('name', 'id')),
+                    ->options(fn() => Category::where('tenant_id', Filament::getTenant()?->id)->pluck('name', 'id')),
 
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif'),

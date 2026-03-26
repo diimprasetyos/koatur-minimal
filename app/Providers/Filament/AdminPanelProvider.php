@@ -36,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ])
 
             // tenant model
-            ->tenant(Tenant::class, slugAttribute: 'slug', ownershipRelationship: 'tenant')
+            ->tenant(Tenant::class, slugAttribute: 'slug', ownershipRelationship: 'tenants')
 
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

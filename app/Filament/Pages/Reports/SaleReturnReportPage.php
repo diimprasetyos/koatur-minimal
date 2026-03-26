@@ -5,6 +5,7 @@ namespace App\Filament\Pages\Reports;
 use App\Models\Return\SaleReturn;
 use BackedEnum;
 
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -62,7 +63,7 @@ class SaleReturnReportPage extends Page implements HasTable
 
     protected function getFilteredQuery(): Builder
     {
-        return SaleReturn::where('tenant_id', auth()->user()->tenant_id);
+        return SaleReturn::where('tenant_id', Filament::getTenant()?->id);
     }
 
     // ── Table ─────────────────────────────────────────────────
@@ -72,7 +73,7 @@ class SaleReturnReportPage extends Page implements HasTable
         return $table
             ->query(
                 SaleReturn::query()
-                    ->where('tenant_id', auth()->user()->tenant_id)
+                    ->where('tenant_id', Filament::getTenant()?->id)
                     ->with(['user', 'sale', 'sale.customer', 'items'])
                     ->latest()
             )

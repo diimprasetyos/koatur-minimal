@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Product\Product;
 use App\Models\Sales\Sale;
+use Filament\Facades\Filament;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Filament\Widgets\Widget;
 
@@ -15,7 +16,7 @@ class RevenueStatsWidget extends Widget
 
     protected function getStats(): array
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Filament::getTenant()?->id;
 
         // ── Hari ini ──────────────────────────────────────────
         $todayRevenue = Sale::where('tenant_id', $tenantId)

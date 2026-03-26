@@ -35,7 +35,7 @@ class ProductForm
                         Select::make('category_id')
                             ->label('Kategori')
                             ->options(function () {
-                                return Category::where('tenant_id', auth()->user()->tenant_id)
+                                return Category::where('tenant_id', Filament::getTenant()?->id)
                                     ->where('is_active', true)
                                     ->pluck('name', 'id');
                             })

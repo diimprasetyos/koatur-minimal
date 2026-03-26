@@ -39,7 +39,7 @@ class BestSellingPage extends Page implements HasTable
                     ->whereHas(
                         'sale',
                         fn($q) => $q
-                            ->where('tenant_id', auth()->user()->tenant_id)
+                            ->where('tenant_id', Filament::getTenant()?->id)
                             ->where('status', 'paid')
                     )
                     ->with('product')

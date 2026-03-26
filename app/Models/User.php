@@ -9,7 +9,6 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -23,7 +22,6 @@ class User extends Authenticatable implements FilamentUser, HasTenants
 
     protected $fillable = [
         'uuid',
-        'tenant_id',
         'name',
         'email',
         'password',
@@ -36,16 +34,16 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     ];
 
     protected $casts = [
-        'is_active'         => 'boolean',
+        'is_active' => 'boolean',
         'email_verified_at' => 'datetime',
-        'password'          => 'hashed',
+        'password' => 'hashed',
     ];
 
     // ─── Filament Panel Access ────────────────────────────────────
 
     public function canAccessPanel(Panel $panel): bool
     {
-        if (! $this->is_active) {
+        if (!$this->is_active) {
             return false;
         }
 
@@ -55,8 +53,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants
 
             // Panel admin (tenant-aware): semua role kecuali super_admin
             // dan wajib punya tenant
-            'admin' => ! $this->hasRole('super_admin')
-                && $this->tenant_id !== null,
+            'admin' => !$this->hasRole('super_admin')
+            && $this->tenants()->exists(),
 
             default => false,
         };
@@ -82,14 +80,6 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(Tenant::class);
-    }
-
-    /**
-     * BelongsTo — untuk query internal (tenant default user ini)
-     */
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
     }
 
     public function sales(): HasMany

@@ -5,6 +5,7 @@ namespace App\Filament\Pages\Reports;
 use App\Models\Quotations\Quotation;
 use BackedEnum;
 
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -68,7 +69,7 @@ class QuotationsReportPage extends Page implements HasTable
 
     protected function getFilteredQuery(): Builder
     {
-        return Quotation::where('tenant_id', auth()->user()->tenant_id);
+        return Quotation::where('tenant_id', Filament::getTenant()?->id);
     }
 
     // ── Table ─────────────────────────────────────────────────
@@ -78,7 +79,7 @@ class QuotationsReportPage extends Page implements HasTable
         return $table
             ->query(
                 Quotation::query()
-                    ->where('tenant_id', auth()->user()->tenant_id)
+                    ->where('tenant_id', Filament::getTenant()?->id)
                     ->with(['user', 'customer', 'items'])
                     ->latest()
             )

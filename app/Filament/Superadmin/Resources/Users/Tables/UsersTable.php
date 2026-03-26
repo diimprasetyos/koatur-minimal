@@ -28,9 +28,9 @@ class UsersTable
                     ->searchable()
                     ->copyable(),
 
-                TextColumn::make('tenant.name')
+                TextColumn::make('tenants.name')
                     ->label('Tenant')
-                    ->placeholder('— Super Admin —')
+                    ->placeholder('- Super Admin - ')
                     ->badge()
                     ->color('primary'),
 
@@ -50,9 +50,12 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('tenant_id')
+                SelectFilter::make('tenants')
                     ->label('Tenant')
-                    ->options(Tenant::pluck('name', 'id')),
+                    ->relationship('tenants', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
 
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif'),

@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Reports;
 
 use App\Models\Purchases\Purchase;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -77,7 +78,7 @@ class PurchasesReportPage extends Page implements HasTable
 
     protected function getFilteredQuery(): Builder
     {
-        return Purchase::where('tenant_id', auth()->user()->tenant_id)
+        return Purchase::where('tenant_id', Filament::getTenant()?->id)
             ->whereNotIn('status', [Purchase::STATUS_CANCELLED]);
     }
 
@@ -88,7 +89,7 @@ class PurchasesReportPage extends Page implements HasTable
         return $table
             ->query(
                 Purchase::query()
-                    ->where('tenant_id', auth()->user()->tenant_id)
+                    ->where('tenant_id', Filament::getTenant()?->id)
                     ->whereNotIn('status', [Purchase::STATUS_CANCELLED])
                     ->with(['user', 'supplier', 'items'])
                     ->latest()
