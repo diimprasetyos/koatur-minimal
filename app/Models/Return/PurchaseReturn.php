@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -31,11 +32,11 @@ class PurchaseReturn extends Model
     ];
 
     protected $casts = [
-        'return_date'  => 'date',
+        'return_date' => 'date',
         'total_return' => 'decimal:2',
     ];
 
-    const STATUS_PENDING  = 'pending';
+    const STATUS_PENDING = 'pending';
     const STATUS_APPROVED = 'approved';
     const STATUS_REJECTED = 'rejected';
 
@@ -44,9 +45,9 @@ class PurchaseReturn extends Model
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            $model->uuid             ??= Str::uuid();
+            $model->uuid ??= Str::uuid();
             $model->reference_number ??= self::generateReferenceNumber($model->tenant_id);
-            $model->user_id          ??= auth()->id();
+            $model->user_id ??= auth()->id();
         });
 
         // FIX: Jangan panggil processReturn di 'created' — items belum tersimpan.
@@ -91,11 +92,23 @@ class PurchaseReturn extends Model
         return $this->hasMany(PurchaseReturnItem::class);
     }
 
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────
 
     public static function generateReferenceNumber(int $tenantId): string
     {
-        $date  = now()->format('Ymd');
+        $date = now()->format('Ymd');
         $count = self::whereDate('created_at', today())
             ->where('tenant_id', $tenantId)
             ->count() + 1;
@@ -130,16 +143,16 @@ class PurchaseReturn extends Model
                 $product->decrement('stock', $item->qty);
 
                 StockMovement::create([
-                    'tenant_id'      => $this->tenant_id,
-                    'product_id'     => $item->product_id,
-                    'user_id'        => $this->user_id,
+                    'tenant_id' => $this->tenant_id,
+                    'product_id' => $item->product_id,
+                    'user_id' => $this->user_id,
                     'reference_type' => 'purchase_return',
-                    'reference_id'   => $this->id,
-                    'type'           => StockMovement::TYPE_OUT,
-                    'qty'            => $item->qty,
-                    'stock_before'   => $stockBefore,
-                    'stock_after'    => $stockBefore - $item->qty,
-                    'notes'          => 'Retur Pembelian #' . $this->reference_number,
+                    'reference_id' => $this->id,
+                    'type' => StockMovement::TYPE_OUT,
+                    'qty' => $item->qty,
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockBefore - $item->qty,
+                    'notes' => 'Retur Pembelian #' . $this->reference_number,
                 ]);
             }
 

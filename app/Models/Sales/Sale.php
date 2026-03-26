@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -35,36 +36,34 @@ class Sale extends Model
 
     protected $casts = [
         'sale_date' => 'date',
-        'subtotal'  => 'decimal:2',
-        'discount'  => 'decimal:2',
-        'tax'       => 'decimal:2',
-        'total'     => 'decimal:2',
-        'paid'      => 'decimal:2',
-        'change'    => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'tax' => 'decimal:2',
+        'total' => 'decimal:2',
+        'paid' => 'decimal:2',
+        'change' => 'decimal:2',
     ];
 
-    const STATUS_PAID      = 'paid';
-    const STATUS_PENDING   = 'pending';
+    const STATUS_PAID = 'paid';
+    const STATUS_PENDING = 'pending';
     const STATUS_CANCELLED = 'cancelled';
 
-    const PAYMENT_CASH     = 'cash';
+    const PAYMENT_CASH = 'cash';
     const PAYMENT_TRANSFER = 'transfer';
-    const PAYMENT_EWALLET  = 'ewallet';
+    const PAYMENT_EWALLET = 'ewallet';
 
     // ─── Boot ─────────────────────────────────────────────────────
 
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            $model->uuid           ??= Str::uuid();
+            $model->uuid ??= Str::uuid();
             $model->invoice_number ??= self::generateInvoiceNumber($model->tenant_id);
-            $model->tenant_id      ??= Filament::getTenant()?->id;
-            $model->user_id        ??= auth()->id();
-            $model->sale_date      ??= now();
+            $model->tenant_id ??= Filament::getTenant()?->id;
+            $model->user_id ??= auth()->id();
+            $model->sale_date ??= now();
         });
 
-        // ⚠️ PERBAIKAN: Hanya reduce stock SETELAH sale DENGAN ITEMS sudah tersimpan
-        // Jangan gunakan 'created', gunakan manual call dari CreateSale page
     }
 
     // ─── Relations ────────────────────────────────────────────────
@@ -94,11 +93,23 @@ class Sale extends Model
         return $this->hasMany(\App\Models\Return\SaleReturn::class);
     }
 
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────
 
     public static function generateInvoiceNumber(int $tenantId): string
     {
-        $date  = now()->format('Ymd');
+        $date = now()->format('Ymd');
         $count = self::whereDate('created_at', today())
             ->where('tenant_id', $tenantId)
             ->count() + 1;
@@ -111,7 +122,6 @@ class Sale extends Model
      */
     public function reduceStock(): void
     {
-        // ⚠️ PENTING: Cek dulu apakah sudah pernah reduce stock
         $alreadyReduced = StockMovement::where('reference_type', 'sale')
             ->where('reference_id', $this->id)
             ->where('type', StockMovement::TYPE_OUT)
@@ -134,16 +144,16 @@ class Sale extends Model
                 $product->decrement('stock', $item->qty);
 
                 StockMovement::create([
-                    'tenant_id'      => $this->tenant_id,
-                    'product_id'     => $item->product_id,
-                    'user_id'        => $this->user_id,
+                    'tenant_id' => $this->tenant_id,
+                    'product_id' => $item->product_id,
+                    'user_id' => $this->user_id,
                     'reference_type' => 'sale',
-                    'reference_id'   => $this->id,
-                    'type'           => StockMovement::TYPE_OUT,
-                    'qty'            => $item->qty,
-                    'stock_before'   => $stockBefore,
-                    'stock_after'    => $stockBefore - $item->qty,
-                    'notes'          => 'Penjualan #' . $this->invoice_number,
+                    'reference_id' => $this->id,
+                    'type' => StockMovement::TYPE_OUT,
+                    'qty' => $item->qty,
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockBefore - $item->qty,
+                    'notes' => 'Penjualan #' . $this->invoice_number,
                 ]);
             }
 
@@ -174,16 +184,16 @@ class Sale extends Model
                 $product->increment('stock', $item->qty);
 
                 StockMovement::create([
-                    'tenant_id'      => $this->tenant_id,
-                    'product_id'     => $item->product_id,
-                    'user_id'        => $this->user_id,
+                    'tenant_id' => $this->tenant_id,
+                    'product_id' => $item->product_id,
+                    'user_id' => $this->user_id,
                     'reference_type' => 'sale_cancelled',
-                    'reference_id'   => $this->id,
-                    'type'           => StockMovement::TYPE_IN,
-                    'qty'            => $item->qty,
-                    'stock_before'   => $stockBefore,
-                    'stock_after'    => $stockBefore + $item->qty,
-                    'notes'          => 'Pembatalan Penjualan #' . $this->invoice_number,
+                    'reference_id' => $this->id,
+                    'type' => StockMovement::TYPE_IN,
+                    'qty' => $item->qty,
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockBefore + $item->qty,
+                    'notes' => 'Pembatalan Penjualan #' . $this->invoice_number,
                 ]);
             }
 
@@ -198,12 +208,12 @@ class Sale extends Model
     public function recalculate(): void
     {
         $this->subtotal = $this->items->sum('subtotal');
-        $this->total    = $this->subtotal - $this->discount + $this->tax;
-        $this->change   = max(0, $this->paid - $this->total);
+        $this->total = $this->subtotal - $this->discount + $this->tax;
+        $this->change = max(0, $this->paid - $this->total);
 
         $this->status = match (true) {
             $this->paid >= $this->total => self::STATUS_PAID,
-            default                      => self::STATUS_PENDING,
+            default => self::STATUS_PENDING,
         };
 
         $this->save();

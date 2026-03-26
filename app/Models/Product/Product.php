@@ -4,10 +4,12 @@ namespace App\Models\Product;
 
 use App\Models\Adjustment\StockMovement;
 use App\Models\Sales\SaleItem;
+use App\Models\Tenant;
 use App\Models\Traits\BelongsToTenant;
 use App\Models\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
@@ -30,15 +32,15 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'price'       => 'decimal:2',
-        'cost_price'  => 'decimal:2',
+        'price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
         'track_stock' => 'boolean',
-        'is_active'   => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function isInStock(): bool
     {
-        return ! $this->track_stock || $this->stock > 0;
+        return !$this->track_stock || $this->stock > 0;
     }
 
     public function decreaseStock(int $qty): void
@@ -68,5 +70,17 @@ class Product extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
     }
 }

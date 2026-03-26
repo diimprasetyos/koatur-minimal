@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -29,17 +30,17 @@ class Quotation extends Model
     ];
 
     protected $casts = [
-        'valid_until'     => 'date',
+        'valid_until' => 'date',
         'discount_amount' => 'decimal:2',
-        'tax_amount'      => 'decimal:2',
-        'total_amount'    => 'decimal:2',
+        'tax_amount' => 'decimal:2',
+        'total_amount' => 'decimal:2',
     ];
 
-    const STATUS_DRAFT    = 'draft';
-    const STATUS_SENT     = 'sent';
+    const STATUS_DRAFT = 'draft';
+    const STATUS_SENT = 'sent';
     const STATUS_ACCEPTED = 'accepted';
     const STATUS_REJECTED = 'rejected';
-    const STATUS_EXPIRED  = 'expired';
+    const STATUS_EXPIRED = 'expired';
 
     // ─── Boot ────────────────────────────────────────────────────
 
@@ -78,11 +79,23 @@ class Quotation extends Model
         return $this->hasMany(QuotationItem::class);
     }
 
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────
 
     public static function generateCode(int $tenantId): string
     {
-        $year  = now()->format('Y');
+        $year = now()->format('Y');
         $count = self::where('tenant_id', $tenantId)
             ->whereYear('created_at', $year)
             ->count() + 1;
@@ -132,7 +145,7 @@ class Quotation extends Model
      */
     public function convertToSale(): Sale
     {
-        if (! $this->isEditable()) {
+        if (!$this->isEditable()) {
             throw new \LogicException("Quotation #{$this->code} cannot be converted (status: {$this->status}).");
         }
 
@@ -140,22 +153,22 @@ class Quotation extends Model
             $this->loadMissing('items');
 
             $sale = Sale::create([
-                'tenant_id'       => $this->tenant_id,
-                'customer_id'     => $this->customer_id,
-                'user_id'         => auth()->id(),
+                'tenant_id' => $this->tenant_id,
+                'customer_id' => $this->customer_id,
+                'user_id' => auth()->id(),
                 'discount_amount' => $this->discount_amount,
-                'tax_amount'      => $this->tax_amount,
-                'total_amount'    => $this->total_amount,
+                'tax_amount' => $this->tax_amount,
+                'total_amount' => $this->total_amount,
                 // Biarkan Sale::booted() generate code-nya sendiri
             ]);
 
             foreach ($this->items as $item) {
                 $sale->items()->create([
-                    'product_id'   => $item->product_id,
+                    'product_id' => $item->product_id,
                     'product_name' => $item->product_name,
-                    'price'        => $item->price,
-                    'quantity'     => $item->quantity,
-                    'subtotal'     => $item->subtotal,
+                    'price' => $item->price,
+                    'quantity' => $item->quantity,
+                    'subtotal' => $item->subtotal,
                 ]);
             }
 

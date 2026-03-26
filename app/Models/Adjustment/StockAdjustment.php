@@ -7,6 +7,7 @@ use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,7 +28,7 @@ class StockAdjustment extends Model
         'adjustment_date' => 'date',
     ];
 
-    const STATUS_DRAFT     = 'draft';
+    const STATUS_DRAFT = 'draft';
     const STATUS_CONFIRMED = 'confirmed';
 
     // ─── Boot ─────────────────────────────────────────────────────
@@ -35,11 +36,11 @@ class StockAdjustment extends Model
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            $model->uuid             ??= Str::uuid();
+            $model->uuid ??= Str::uuid();
             $model->reference_number ??= self::generateReferenceNumber($model->tenant_id);
-            $model->tenant_id        ??= Filament::getTenant()?->id;
-            $model->user_id          ??= auth()->id();
-            $model->adjustment_date  ??= now()->toDateString();
+            $model->tenant_id ??= Filament::getTenant()?->id;
+            $model->user_id ??= auth()->id();
+            $model->adjustment_date ??= now()->toDateString();
         });
 
         // FIX: applyAdjustment dipanggil di 'updated' (status draft→confirmed)
@@ -77,11 +78,23 @@ class StockAdjustment extends Model
         return $this->hasMany(StockAdjustmentItem::class);
     }
 
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────
 
     public static function generateReferenceNumber(int $tenantId): string
     {
-        $date  = now()->format('Ymd');
+        $date = now()->format('Ymd');
         $count = self::whereDate('created_at', today())
             ->where('tenant_id', $tenantId)
             ->count() + 1;
@@ -117,26 +130,26 @@ class StockAdjustment extends Model
                 }
 
                 StockMovement::create([
-                    'tenant_id'      => $this->tenant_id,
-                    'product_id'     => $item->product_id,
-                    'user_id'        => $this->user_id,
+                    'tenant_id' => $this->tenant_id,
+                    'product_id' => $item->product_id,
+                    'user_id' => $this->user_id,
                     'reference_type' => StockMovement::REF_ADJUSTMENT,
-                    'reference_id'   => $this->id,
-                    'type'           => $qtyDiff > 0 ? StockMovement::TYPE_IN : StockMovement::TYPE_OUT,
-                    'qty'            => abs($qtyDiff),
-                    'stock_before'   => $stockBefore,
-                    'stock_after'    => $item->stock_after,
-                    'notes'          => ($item->notes ?: 'Penyesuaian Stok #' . $this->reference_number),
+                    'reference_id' => $this->id,
+                    'type' => $qtyDiff > 0 ? StockMovement::TYPE_IN : StockMovement::TYPE_OUT,
+                    'qty' => abs($qtyDiff),
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $item->stock_after,
+                    'notes' => ($item->notes ?: 'Penyesuaian Stok #' . $this->reference_number),
                 ]);
 
                 // Update qty_difference di item agar sinkron dengan yang benar-benar diterapkan
                 $item->updateQuietly([
-                    'stock_before'   => $stockBefore,
+                    'stock_before' => $stockBefore,
                     'qty_difference' => $qtyDiff,
-                    'type'           => match (true) {
+                    'type' => match (true) {
                         $qtyDiff > 0 => 'add',
                         $qtyDiff < 0 => 'subtract',
-                        default      => 'set',
+                        default => 'set',
                     },
                 ]);
             }

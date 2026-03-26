@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 class Expense extends Model
@@ -25,7 +26,7 @@ class Expense extends Model
     ];
 
     protected $casts = [
-        'amount'       => 'decimal:2',
+        'amount' => 'decimal:2',
         'expense_date' => 'date',
     ];
 
@@ -34,7 +35,7 @@ class Expense extends Model
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            $model->uuid             ??= Str::uuid();
+            $model->uuid ??= Str::uuid();
             $model->reference_number ??= self::generateReferenceNumber($model->tenant_id);
         });
     }
@@ -56,11 +57,22 @@ class Expense extends Model
         return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
     }
 
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
+    }
     // ─── Helpers ──────────────────────────────────────────────────
 
     public static function generateReferenceNumber(int $tenantId): string
     {
-        $date  = now()->format('Ymd');
+        $date = now()->format('Ymd');
         $count = self::whereDate('created_at', today())
             ->where('tenant_id', $tenantId)
             ->count() + 1;

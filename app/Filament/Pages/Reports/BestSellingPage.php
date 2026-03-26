@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Reports;
 
 use App\Models\Sales\SaleItem;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;

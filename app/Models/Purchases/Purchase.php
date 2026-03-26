@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -37,35 +38,35 @@ class Purchase extends Model
     ];
 
     protected $casts = [
-        'purchase_date'  => 'date',
-        'due_date'       => 'date',
-        'subtotal'       => 'decimal:2',
-        'discount'       => 'decimal:2',
-        'tax'            => 'decimal:2',
-        'total'          => 'decimal:2',
-        'paid'           => 'decimal:2',
-        'due'            => 'decimal:2',
+        'purchase_date' => 'date',
+        'due_date' => 'date',
+        'subtotal' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'tax' => 'decimal:2',
+        'total' => 'decimal:2',
+        'paid' => 'decimal:2',
+        'due' => 'decimal:2',
     ];
 
-    const STATUS_DRAFT      = 'draft';
-    const STATUS_ORDERED    = 'ordered';
-    const STATUS_RECEIVED   = 'received';
-    const STATUS_PARTIAL    = 'partial';
-    const STATUS_CANCELLED  = 'cancelled';
+    const STATUS_DRAFT = 'draft';
+    const STATUS_ORDERED = 'ordered';
+    const STATUS_RECEIVED = 'received';
+    const STATUS_PARTIAL = 'partial';
+    const STATUS_CANCELLED = 'cancelled';
 
-    const PAYMENT_UNPAID  = 'unpaid';
+    const PAYMENT_UNPAID = 'unpaid';
     const PAYMENT_PARTIAL = 'partial';
-    const PAYMENT_PAID    = 'paid';
+    const PAYMENT_PAID = 'paid';
 
     // ─── Boot ─────────────────────────────────────────────────────
 
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            $model->uuid             ??= Str::uuid();
+            $model->uuid ??= Str::uuid();
             $model->reference_number ??= self::generateReferenceNumber($model->tenant_id);
-            $model->tenant_id        ??= Filament::getTenant()?->id;
-            $model->user_id          ??= auth()->id();
+            $model->tenant_id ??= Filament::getTenant()?->id;
+            $model->user_id ??= auth()->id();
         });
 
     }
@@ -97,11 +98,23 @@ class Purchase extends Model
         return $this->hasMany(\App\Models\Return\PurchaseReturn::class);
     }
 
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────
 
     public static function generateReferenceNumber(int $tenantId): string
     {
-        $date  = now()->format('Ymd');
+        $date = now()->format('Ymd');
         $count = self::whereDate('created_at', today())
             ->where('tenant_id', $tenantId)
             ->count() + 1;
@@ -139,16 +152,16 @@ class Purchase extends Model
                 $product->update(['cost_price' => $item->cost_price]);
 
                 StockMovement::create([
-                    'tenant_id'      => $this->tenant_id,
-                    'product_id'     => $item->product_id,
-                    'user_id'        => $this->user_id,
+                    'tenant_id' => $this->tenant_id,
+                    'product_id' => $item->product_id,
+                    'user_id' => $this->user_id,
                     'reference_type' => 'purchase',
-                    'reference_id'   => $this->id,
-                    'type'           => StockMovement::TYPE_IN,
-                    'qty'            => $item->qty,
-                    'stock_before'   => $stockBefore,
-                    'stock_after'    => $stockBefore + $item->qty,
-                    'notes'          => 'Pembelian #' . $this->reference_number,
+                    'reference_id' => $this->id,
+                    'type' => StockMovement::TYPE_IN,
+                    'qty' => $item->qty,
+                    'stock_before' => $stockBefore,
+                    'stock_after' => $stockBefore + $item->qty,
+                    'notes' => 'Pembelian #' . $this->reference_number,
                 ]);
             }
 
@@ -162,13 +175,13 @@ class Purchase extends Model
     public function recalculate(): void
     {
         $this->subtotal = $this->items->sum('subtotal');
-        $this->total    = $this->subtotal - $this->discount + $this->tax;
-        $this->due      = $this->total - $this->paid;
+        $this->total = $this->subtotal - $this->discount + $this->tax;
+        $this->due = $this->total - $this->paid;
 
         $this->payment_status = match (true) {
-            $this->due <= 0          => self::PAYMENT_PAID,
-            $this->paid > 0          => self::PAYMENT_PARTIAL,
-            default                  => self::PAYMENT_UNPAID,
+            $this->due <= 0 => self::PAYMENT_PAID,
+            $this->paid > 0 => self::PAYMENT_PARTIAL,
+            default => self::PAYMENT_UNPAID,
         };
 
         $this->save();

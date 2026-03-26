@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class StockMovement extends Model
 {
@@ -18,16 +19,16 @@ class StockMovement extends Model
     const CREATED_AT = 'created_at';
     const UPDATED_AT = null;
 
-    const TYPE_IN  = 'in';
+    const TYPE_IN = 'in';
     const TYPE_OUT = 'out';
 
     // FIX: tambahkan konstanta REF_ADJUSTMENT yang dipakai StockAdjustment
-    const REF_SALE             = 'sale';
-    const REF_PURCHASE         = 'purchase';
-    const REF_SALE_RETURN      = 'sale_return';
-    const REF_PURCHASE_RETURN  = 'purchase_return';
-    const REF_ADJUSTMENT       = 'adjustment';
-    const REF_SALE_CANCELLED   = 'sale_cancelled';
+    const REF_SALE = 'sale';
+    const REF_PURCHASE = 'purchase';
+    const REF_SALE_RETURN = 'sale_return';
+    const REF_PURCHASE_RETURN = 'purchase_return';
+    const REF_ADJUSTMENT = 'adjustment';
+    const REF_SALE_CANCELLED = 'sale_cancelled';
 
     protected $fillable = [
         'tenant_id',
@@ -43,10 +44,10 @@ class StockMovement extends Model
     ];
 
     protected $casts = [
-        'qty'          => 'integer',
+        'qty' => 'integer',
         'stock_before' => 'integer',
-        'stock_after'  => 'integer',
-        'created_at'   => 'datetime',
+        'stock_after' => 'integer',
+        'created_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -71,5 +72,17 @@ class StockMovement extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
     }
 }

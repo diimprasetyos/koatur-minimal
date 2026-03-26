@@ -9,6 +9,7 @@ use App\Models\Traits\BelongsToTenant;
 use App\Models\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -31,7 +32,7 @@ class Customer extends Model
 
     protected $casts = [
         'payable_amount' => 'decimal:2',
-        'is_active'      => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     // ─── Boot ─────────────────────────────────────────────────────
@@ -58,6 +59,18 @@ class Customer extends Model
     public function saleReturns(): HasMany
     {
         return $this->hasMany(SaleReturn::class);
+    }
+
+    public function tenants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tenant::class,  // model Tenant
+            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
+            'id',                       // FK ke model ini di "pivot"
+            'tenant_id',                // FK ke tenant di "pivot"
+            'id',                       // PK model ini
+            'id',                       // PK tenant
+        );
     }
 
     // ─── Helpers ──────────────────────────────────────────────────
