@@ -24,7 +24,17 @@ class CategoryResource extends Resource
 
     protected static ?string $navigationLabel = 'Kategori Produk';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Produk';
+    protected static string|UnitEnum|null $navigationGroup = 'Produk';
+
+    public static function getModelLabel(): string
+    {
+        return 'Kategori Produk';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Kategori Produk';
+    }
 
     protected static ?string $recordTitleAttribute = 'name';
 

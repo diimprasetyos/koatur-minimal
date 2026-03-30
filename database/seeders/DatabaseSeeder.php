@@ -39,7 +39,6 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Demo Store',
                 'slug' => 'demo-store',
                 'phone' => '081234567890',
-                'subscription_plan' => 'basic',
                 'is_active' => true,
             ]
         );
@@ -51,6 +50,7 @@ class DatabaseSeeder extends Seeder
                 'uuid' => Str::uuid(),
                 'name' => 'Owner',
                 'password' => Hash::make('owner123'),
+                'subscription_plan' => 'basic',
                 'is_active' => true,
             ]
         );
@@ -61,6 +61,7 @@ class DatabaseSeeder extends Seeder
                 'uuid' => Str::uuid(),
                 'name' => 'Manager',
                 'password' => Hash::make('manager123'),
+                'subscription_plan' => 'basic',
                 'is_active' => true,
             ]
         );
@@ -71,6 +72,7 @@ class DatabaseSeeder extends Seeder
                 'uuid' => Str::uuid(),
                 'name' => 'Kasir',
                 'password' => Hash::make('kasir123'),
+                'subscription_plan' => 'basic',
                 'is_active' => true,
             ]
         );

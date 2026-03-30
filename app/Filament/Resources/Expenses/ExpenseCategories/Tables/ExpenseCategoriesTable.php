@@ -16,12 +16,15 @@ class ExpenseCategoriesTable
         return $table
             ->columns([
                 TextColumn::make('tenant.name')
+                    ->label('Toko')
                     ->searchable(),
                 TextColumn::make('name')
+                    ->label('Nama')
                     ->searchable(),
                 ColorColumn::make('color')
                     ->label('Warna'),
                 TextColumn::make('created_at')
+                    ->label('Dibuat Pada')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

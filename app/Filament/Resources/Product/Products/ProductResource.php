@@ -24,8 +24,17 @@ class ProductResource extends Resource
 
     protected static ?string $navigationLabel = 'Produk';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Produk';
+    protected static string|UnitEnum|null $navigationGroup = 'Produk';
 
+    public static function getModelLabel(): string
+    {
+        return 'Produk';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Produk';
+    }
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema

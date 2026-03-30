@@ -18,24 +18,32 @@ class SuppliersTable
         return $table
             ->columns([
                 TextColumn::make('tenant.name')
+                    ->label('Toko')
                     ->searchable(),
                 TextColumn::make('name')
+                    ->label('Nama')
                     ->searchable(),
                 TextColumn::make('code')
+                    ->label('Kode')
                     ->searchable(),
                 TextColumn::make('phone')
+                    ->label('Telepon')
                     ->searchable(),
                 TextColumn::make('email')
                     ->label('Email address')
                     ->searchable(),
                 TextColumn::make('contact_person')
+                    ->label('Kontak Person')
                     ->searchable(),
                 TextColumn::make('payable_amount')
+                    ->label('Jumlah Terutang')
                     ->numeric()
                     ->sortable(),
                 IconColumn::make('is_active')
+                    ->label('Aktif')
                     ->boolean(),
                 TextColumn::make('created_at')
+                    ->label('Dibuat Pada')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

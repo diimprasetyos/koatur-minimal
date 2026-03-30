@@ -20,9 +20,9 @@ class RoleSeeder extends Seeder
         // Assign permissions lewat UI /superadmin → Roles
 
         Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'owner',       'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'manager',     'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'kasir',       'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'kasir', 'guard_name' => 'web']);
 
         $this->command->info('✅ Roles berhasil dibuat.');
 

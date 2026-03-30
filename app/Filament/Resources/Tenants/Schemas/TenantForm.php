@@ -14,37 +14,35 @@ class TenantForm
         return $schema
             ->components([
                 TextInput::make('name')
+                    ->label('Nama Toko')
                     ->required()
                     ->maxLength(255)
                     ->live(onBlur: true),
 
-                // Slug di-generate otomatis dari name via bootTenant(),
-                // tapi tetap bisa diedit manual jika diperlukan.
                 TextInput::make('slug')
+                    ->label('Alias')
                     ->maxLength(255)
                     ->unique(ignoreRecord: true)
                     ->helperText('Dibuat otomatis dari nama jika dikosongkan.'),
 
                 TextInput::make('phone')
+                    ->label('No. Telepon')
                     ->tel()
                     ->maxLength(20),
 
                 TextInput::make('address')
+                    ->label('Alamat')
                     ->maxLength(500),
 
                 FileUpload::make('logo')
+                    ->label('Logo')
                     ->image()
                     ->directory('tenants/logos')
                     ->visibility('public')
                     ->nullable(),
 
-                // subscription_plan: disabled di UI tapi tetap ikut save (dehydrated).
-                TextInput::make('subscription_plan')
-                    ->disabled()
-                    ->dehydrated()
-                    ->default('free'),
-
                 Toggle::make('is_active')
+                    ->label('Aktif')
                     ->required()
                     ->default(true),
             ]);

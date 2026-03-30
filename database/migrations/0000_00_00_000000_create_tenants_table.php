@@ -19,7 +19,6 @@ return new class extends Migration {
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
             $table->string('logo')->nullable();
-            $table->string('subscription_plan')->default('basic');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

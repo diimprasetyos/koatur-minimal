@@ -26,6 +26,7 @@ class ProductsTable
         return $table
             ->columns([
                 TextColumn::make('tenant.name')
+                    ->label('Toko')
                     ->searchable(),
                 ImageColumn::make('image')
                     ->label('')

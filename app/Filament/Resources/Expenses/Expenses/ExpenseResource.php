@@ -25,6 +25,16 @@ class ExpenseResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Pengeluaran';
 
+    public static function getModelLabel(): string
+    {
+        return 'Pengeluaran';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pengeluaran';
+    }
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema

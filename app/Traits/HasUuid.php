@@ -6,19 +6,27 @@ use Illuminate\Support\Str;
 
 trait HasUuid
 {
-    protected static function bootHasUuid()
+    public static function bootHasUuid(): void
     {
         static::creating(function ($model) {
-            if (!$model->uuid) {
+            if (empty($model->uuid)) {
                 $model->uuid = (string) Str::uuid();
             }
         });
     }
 
-    public function initializeHasUuid()
+    public function getRouteKeyName(): string
     {
-        if (empty($this->uuid)) {
-            $this->uuid = (string) Str::uuid();
-        }
+        return 'uuid';
+    }
+
+    public static function findByUuid(string $uuid): ?static
+    {
+        return static::where('uuid', $uuid)->first();
+    }
+
+    public static function findByUuidOrFail(string $uuid): static
+    {
+        return static::where('uuid', $uuid)->firstOrFail();
     }
 }

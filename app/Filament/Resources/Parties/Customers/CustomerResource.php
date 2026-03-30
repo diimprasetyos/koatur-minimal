@@ -24,7 +24,17 @@ class CustomerResource extends Resource
 
     protected static ?string $navigationLabel = 'Pelanggan';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Pihak';
+    protected static string|UnitEnum|null $navigationGroup = 'Pihak';
+
+    public static function getModelLabel(): string
+    {
+        return 'Pelanggan';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pelanggan';
+    }
 
 
     protected static ?string $recordTitleAttribute = 'name';

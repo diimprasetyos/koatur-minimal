@@ -7,7 +7,7 @@ use App\Models\Parties\Customer;
 use App\Models\Product\Category;
 use App\Models\Product\Product;
 use App\Models\Sales\Sale;
-use App\Models\Traits\HasUuid;
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,7 +24,6 @@ class Tenant extends Model
         'phone',
         'address',
         'logo',
-        'subscription_plan',
         'is_active',
     ];
 

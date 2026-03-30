@@ -15,25 +15,34 @@ class StockMovementsTable
         return $table
             ->columns([
                 TextColumn::make('tenant.name')
+                    ->label('Toko')
                     ->searchable(),
                 TextColumn::make('product.name')
+                    ->label('Produk')
                     ->searchable(),
                 TextColumn::make('user.name')
+                    ->label('Pengguna')
                     ->searchable(),
                 TextColumn::make('reference_type')
+                    ->label('Jenis Referensi')
                     ->searchable(),
                 TextColumn::make('reference_id')
+                    ->label('ID Referensi')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('type')
+                    ->label('Jenis')
                     ->searchable(),
                 TextColumn::make('qty')
+                    ->label('Jumlah')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('stock_before')
+                    ->label('Stok Awal')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('stock_after')
+                    ->label('Stok Akhir')
                     ->numeric()
                     ->sortable(),
             ])
@@ -41,12 +50,12 @@ class StockMovementsTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                // EditAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                // BulkActionGroup::make([
+                //     DeleteBulkAction::make(),
+                // ]),
             ]);
     }
 }

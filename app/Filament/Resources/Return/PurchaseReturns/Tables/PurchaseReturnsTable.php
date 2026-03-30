@@ -28,7 +28,7 @@ class PurchaseReturnsTable
                     ->sortable(),
 
                 TextColumn::make('supplier.name')
-                    ->label('Supplier')
+                    ->label('Pemasok')
                     ->searchable(),
 
                 TextColumn::make('return_date')
@@ -51,24 +51,24 @@ class PurchaseReturnsTable
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         PurchaseReturn::STATUS_APPROVED => 'success',
-                        PurchaseReturn::STATUS_PENDING  => 'warning',
+                        PurchaseReturn::STATUS_PENDING => 'warning',
                         PurchaseReturn::STATUS_REJECTED => 'danger',
-                        default                         => 'gray',
+                        default => 'gray',
                     })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         PurchaseReturn::STATUS_APPROVED => 'Disetujui',
-                        PurchaseReturn::STATUS_PENDING  => 'Menunggu',
+                        PurchaseReturn::STATUS_PENDING => 'Menunggu',
                         PurchaseReturn::STATUS_REJECTED => 'Ditolak',
-                        default                         => $state,
+                        default => $state,
                     }),
 
                 TextColumn::make('return_method')
                     ->label('Metode')
                     ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'debit_note'  => 'Debit Note',
-                        'refund'      => 'Refund Tunai',
+                        'debit_note' => 'Debit Note',
+                        'refund' => 'Refund Tunai',
                         'replacement' => 'Penggantian',
-                        default       => $state,
+                        default => $state,
                     }),
 
                 TextColumn::make('user.name')
@@ -86,7 +86,7 @@ class PurchaseReturnsTable
                     ->label('Status')
                     ->options([
                         PurchaseReturn::STATUS_APPROVED => 'Disetujui',
-                        PurchaseReturn::STATUS_PENDING  => 'Menunggu',
+                        PurchaseReturn::STATUS_PENDING => 'Menunggu',
                         PurchaseReturn::STATUS_REJECTED => 'Ditolak',
                     ]),
             ])

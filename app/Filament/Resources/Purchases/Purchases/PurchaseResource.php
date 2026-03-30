@@ -25,7 +25,17 @@ class PurchaseResource extends Resource
 
     protected static ?string $navigationLabel = 'Pembelian';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Transaksi';
+    protected static string|UnitEnum|null $navigationGroup = 'Transaksi';
+
+    public static function getModelLabel(): string
+    {
+        return 'Pembelian';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pembelian';
+    }
 
     protected static ?string $recordTitleAttribute = 'name';
 

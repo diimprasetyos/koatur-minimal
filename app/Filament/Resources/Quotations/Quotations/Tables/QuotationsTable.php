@@ -31,7 +31,7 @@ class QuotationsTable
                     ->fontFamily('mono'),
 
                 TextColumn::make('customer.name')
-                    ->label('Customer')
+                    ->label('Pelanggan')
                     ->searchable()
                     ->sortable()
                     ->placeholder('—'),
@@ -46,28 +46,29 @@ class QuotationsTable
                     ->label('Berlaku Hingga')
                     ->date('d M Y')
                     ->sortable()
-                    ->color(fn (Quotation $record) =>
+                    ->color(
+                        fn(Quotation $record) =>
                         $record->isExpired() ? 'danger' : null
                     ),
 
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        Quotation::STATUS_DRAFT    => 'Draft',
-                        Quotation::STATUS_SENT     => 'Terkirim',
+                    ->formatStateUsing(fn($state) => match ($state) {
+                        Quotation::STATUS_DRAFT => 'Draft',
+                        Quotation::STATUS_SENT => 'Terkirim',
                         Quotation::STATUS_ACCEPTED => 'Diterima',
                         Quotation::STATUS_REJECTED => 'Ditolak',
-                        Quotation::STATUS_EXPIRED  => 'Kadaluarsa',
-                        default                    => $state,
+                        Quotation::STATUS_EXPIRED => 'Kadaluarsa',
+                        default => $state,
                     })
-                    ->color(fn ($state) => match ($state) {
-                        Quotation::STATUS_DRAFT    => 'gray',
-                        Quotation::STATUS_SENT     => 'info',
+                    ->color(fn($state) => match ($state) {
+                        Quotation::STATUS_DRAFT => 'gray',
+                        Quotation::STATUS_SENT => 'info',
                         Quotation::STATUS_ACCEPTED => 'success',
                         Quotation::STATUS_REJECTED,
-                        Quotation::STATUS_EXPIRED  => 'danger',
-                        default                    => 'gray',
+                        Quotation::STATUS_EXPIRED => 'danger',
+                        default => 'gray',
                     }),
 
                 TextColumn::make('user.name')
@@ -85,11 +86,11 @@ class QuotationsTable
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options([
-                        Quotation::STATUS_DRAFT    => 'Draft',
-                        Quotation::STATUS_SENT     => 'Terkirim',
+                        Quotation::STATUS_DRAFT => 'Draft',
+                        Quotation::STATUS_SENT => 'Terkirim',
                         Quotation::STATUS_ACCEPTED => 'Diterima',
                         Quotation::STATUS_REJECTED => 'Ditolak',
-                        Quotation::STATUS_EXPIRED  => 'Kadaluarsa',
+                        Quotation::STATUS_EXPIRED => 'Kadaluarsa',
                     ]),
 
                 SelectFilter::make('customer_id')
@@ -104,30 +105,32 @@ class QuotationsTable
                         DatePicker::make('from')->label('Dari'),
                         DatePicker::make('until')->label('Sampai'),
                     ])
-                    ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'],  fn ($q, $v) => $q->whereDate('valid_until', '>=', $v))
-                        ->when($data['until'], fn ($q, $v) => $q->whereDate('valid_until', '<=', $v))
+                    ->query(
+                        fn(Builder $query, array $data) => $query
+                            ->when($data['from'], fn($q, $v) => $q->whereDate('valid_until', '>=', $v))
+                            ->when($data['until'], fn($q, $v) => $q->whereDate('valid_until', '<=', $v))
                     ),
 
                 Filter::make('expired')
                     ->label('Hanya yang kadaluarsa')
-                    ->query(fn (Builder $query) => $query
-                        ->whereNotNull('valid_until')
-                        ->whereDate('valid_until', '<', now())
-                        ->whereNotIn('status', [Quotation::STATUS_ACCEPTED])
+                    ->query(
+                        fn(Builder $query) => $query
+                            ->whereNotNull('valid_until')
+                            ->whereDate('valid_until', '<', now())
+                            ->whereNotIn('status', [Quotation::STATUS_ACCEPTED])
                     ),
             ])
             ->recordActions([
                 ActionGroup::make([
                     EditAction::make()
-                        ->hidden(fn (Quotation $record) => ! $record->isEditable()),
+                        ->hidden(fn(Quotation $record) => !$record->isEditable()),
 
                     Action::make('mark_sent')
                         ->label('Tandai Terkirim')
                         ->icon('heroicon-o-paper-airplane')
                         ->color('info')
                         ->requiresConfirmation()
-                        ->hidden(fn (Quotation $record) => $record->status !== Quotation::STATUS_DRAFT)
+                        ->hidden(fn(Quotation $record) => $record->status !== Quotation::STATUS_DRAFT)
                         ->action(function (Quotation $record) {
                             $record->update(['status' => Quotation::STATUS_SENT]);
                             Notification::make()
@@ -142,7 +145,7 @@ class QuotationsTable
                         ->color('success')
                         ->requiresConfirmation()
                         ->modalDescription('Penawaran ini akan dikonversi menjadi transaksi penjualan. Tindakan ini tidak bisa dibatalkan.')
-                        ->hidden(fn (Quotation $record) => ! $record->isEditable())
+                        ->hidden(fn(Quotation $record) => !$record->isEditable())
                         ->action(function (Quotation $record) {
                             try {
                                 $sale = $record->convertToSale();
@@ -163,7 +166,7 @@ class QuotationsTable
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->hidden(fn (Quotation $record) => ! $record->isEditable())
+                        ->hidden(fn(Quotation $record) => !$record->isEditable())
                         ->action(function (Quotation $record) {
                             $record->update(['status' => Quotation::STATUS_REJECTED]);
                             Notification::make()
@@ -173,7 +176,7 @@ class QuotationsTable
                         }),
 
                     DeleteAction::make()
-                        ->hidden(fn (Quotation $record) => ! $record->isDraft()),
+                        ->hidden(fn(Quotation $record) => !$record->isDraft()),
                 ]),
             ])
             ->toolbarActions([

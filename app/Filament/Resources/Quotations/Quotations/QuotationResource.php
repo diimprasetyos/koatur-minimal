@@ -27,6 +27,16 @@ class QuotationResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Transaksi';
 
+    public static function getModelLabel(): string
+    {
+        return 'Penawaran';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Penawaran';
+    }
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function getRelations(): array

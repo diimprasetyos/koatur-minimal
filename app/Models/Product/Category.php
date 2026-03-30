@@ -4,8 +4,8 @@ namespace App\Models\Product;
 
 use App\Models\Product\Product;
 use App\Models\Tenant;
-use App\Models\Traits\BelongsToTenant;
-use App\Models\Traits\HasUuid;
+use App\Traits\BelongsToTenant;
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;

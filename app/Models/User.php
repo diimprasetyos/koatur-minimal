@@ -4,7 +4,8 @@ namespace App\Models;
 
 use App\Models\Adjustment\StockMovement;
 use App\Models\Sales\Sale;
-use App\Models\Traits\HasUuid;
+use App\Traits\HasUuid;
+use App\Utils\PlanLimit;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
@@ -14,17 +15,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser, HasTenants
 {
-    use HasRoles, Notifiable, HasUuid;
+    use HasRoles, Notifiable, HasUuid, HasApiTokens;
 
     protected $fillable = [
         'uuid',
         'name',
         'email',
         'password',
+        'subscription_plan',
         'is_active',
     ];
 
@@ -72,11 +75,9 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return $this->tenants()->whereKey($tenant)->exists();
     }
 
+
     // ─── Relations ───────────────────────────────────────────────
 
-    /**
-     * BelongsToMany — untuk Filament tenancy (pivot tenant_user)
-     */
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(Tenant::class);
@@ -92,7 +93,32 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return $this->hasMany(StockMovement::class);
     }
 
+    // Tenant yang sedang aktif
+    public function currentTenant()
+    {
+        return $this->belongsTo(Tenant::class, 'current_tenant_id');
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────
+    public function getSubscriptionPlan(): string
+    {
+        return $this->subscription_plan ?? 'basic';
+    }
+
+    public function canCreateTenant(): bool
+    {
+        return PlanLimit::canCreateTenant($this);
+    }
+
+    public function remainingTenants(): ?int
+    {
+        return PlanLimit::remainingTenants($this);
+    }
+
+    public function isProPlan(): bool
+    {
+        return $this->subscription_plan === 'pro';
+    }
 
     public function isSuperAdmin(): bool
     {

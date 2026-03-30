@@ -26,6 +26,16 @@ class UserResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Pengelolaan';
 
+    public static function getModelLabel(): string
+    {
+        return 'Pengguna';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pengguna';
+    }
+
     protected static ?string $recordTitleAttribute = 'name';
 
     /**

@@ -25,7 +25,17 @@ class PurchaseReturnResource extends Resource
 
     protected static ?string $navigationLabel = 'Retur Pembelian';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Transaksi';
+    protected static string|UnitEnum|null $navigationGroup = 'Transaksi';
+
+    public static function getModelLabel(): string
+    {
+        return 'Retur Pembelian';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Retur Pembelian';
+    }
 
     protected static ?string $recordTitleAttribute = 'name';
 

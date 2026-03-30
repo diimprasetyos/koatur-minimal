@@ -14,9 +14,17 @@ return new class extends Migration {
             $table->id();
             $table->uuid('uuid')->unique();
 
+            $table->foreignId('current_tenant_id')
+                ->nullable()
+                ->after('is_active')
+                ->constrained('tenants')
+                ->nullOnDelete();
+
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
+
+            $table->string('subscription_plan')->default('basic');
             $table->boolean('is_active')->default(true);
 
             $table->rememberToken();

@@ -23,7 +23,17 @@ class ExpenseCategoryResource extends Resource
 
     protected static ?string $navigationLabel = 'Kategori Pengeluaran';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Pengeluaran';
+    protected static string|UnitEnum|null $navigationGroup = 'Pengeluaran';
+
+    public static function getModelLabel(): string
+    {
+        return 'Kategori Pengeluaran';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Kategori Pengeluaran';
+    }
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -23,7 +23,17 @@ class SupplierResource extends Resource
 
     protected static ?string $navigationLabel = 'Pemasok';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Pihak';
+    protected static string|UnitEnum|null $navigationGroup = 'Pihak';
+
+    public static function getModelLabel(): string
+    {
+        return 'Pemasok';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Pemasok';
+    }
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -25,6 +25,16 @@ class StockMovementResource extends Resource
 
     protected static ?string $navigationLabel = 'Riwayat Stok';
 
+    public static function getModelLabel(): string
+    {
+        return 'Riwayat Stok';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Riwayat  Stok';
+    }
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema
@@ -48,8 +58,8 @@ class StockMovementResource extends Resource
     {
         return [
             'index' => ListStockMovements::route('/'),
-            'create' => CreateStockMovement::route('/create'),
-            'edit' => EditStockMovement::route('/{record}/edit'),
+            // 'create' => CreateStockMovement::route('/create'),
+            // 'edit' => EditStockMovement::route('/{record}/edit'),
         ];
     }
 }

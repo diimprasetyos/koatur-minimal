@@ -25,7 +25,17 @@ class SaleReturnResource extends Resource
 
     protected static ?string $navigationLabel = 'Retur Penjualan';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Transaksi';
+    protected static string|UnitEnum|null $navigationGroup = 'Transaksi';
+
+    public static function getModelLabel(): string
+    {
+        return 'Retur Penjualan';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Retur Penjualan';
+    }
 
     protected static ?string $recordTitleAttribute = 'name';
 

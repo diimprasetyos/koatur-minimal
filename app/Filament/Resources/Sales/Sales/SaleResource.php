@@ -24,7 +24,17 @@ class SaleResource extends Resource
 
     protected static ?string $navigationLabel = 'Penjualan';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Transaksi';
+    protected static string|UnitEnum|null $navigationGroup = 'Transaksi';
+
+    public static function getModelLabel(): string
+    {
+        return 'Penjualan';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'Penjualan';
+    }
 
     protected static ?string $recordTitleAttribute = 'uuid';
 

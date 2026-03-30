@@ -17,43 +17,53 @@ class ExpensesTable
         return $table
             ->columns([
                 TextColumn::make('tenant.name')
+                    ->label('Toko')
                     ->searchable(),
                 TextColumn::make('user.name')
+                    ->label('Pengguna')
                     ->searchable(),
                 TextColumn::make('category.name')
+                    ->label('Kategori')
                     ->sortable()
                     ->badge()
-                    ->color(fn ($record) => $record->expense_category?->color ?? 'gray'),
+                    ->color(fn($record) => $record->expense_category?->color ?? 'gray'),
                 TextColumn::make('reference_number')
+                    ->label('No Referensi')
                     ->searchable(),
                 TextColumn::make('title')
+                    ->label('Judul')
                     ->searchable(),
                 TextColumn::make('amount')
+                    ->label('Jumlah')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('expense_date')
+                    ->label('Tanggal Pengeluaran')
                     ->date()
                     ->sortable(),
                 TextColumn::make('payment_method')
+                    ->label('Metode Pembayaran')
                     ->searchable()
                     ->badge()
                     ->formatStateUsing(fn(string $state) => match ($state) {
-                        'cash'     => '💵 Cash',
+                        'cash' => '💵 Cash',
                         'transfer' => '🏦 Transfer',
-                        'ewallet'  => '📱 E-Wallet',
-                        default    => $state,
+                        'ewallet' => '📱 E-Wallet',
+                        default => $state,
                     })
                     ->color('gray')
                     ->toggleable(),
                 ImageColumn::make('attachment')
-                    ->label('Attachment')
+                    ->label('Bukti')
                     ->circular()
                     ->defaultImageUrl(fn() => 'https://ui-avatars.com/api/?name=P&background=e2e8f0&color=475569'),
                 TextColumn::make('created_at')
+                    ->label('Dibuat Pada')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
+                    ->label('Diperbarui Pada')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
