@@ -3,6 +3,7 @@
 namespace App\Filament\Pages\Reports;
 
 use App\Models\Sales\Sale;
+use App\Traits\HasReportActions;
 use BackedEnum;
 
 use Filament\Facades\Filament;
@@ -22,13 +23,18 @@ use UnitEnum;
 
 class SalesReportPage extends Page implements HasTable
 {
-    use InteractsWithTable;
+    use InteractsWithTable, HasReportActions;
+
+    const REPORT_TYPE = 'sales';
+    const REPORT_TITLE = 'Laporan Penjualan';
+
+    protected static ?string $title = self::REPORT_TITLE;
+
     protected string $view = 'filament.pages.reports.sales-report-page';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::DocumentChartBar;
-
     protected static string|UnitEnum|null $navigationGroup = 'Laporan';
-
     protected static ?string $navigationLabel = 'Laporan Penjualan';
+
 
     protected static ?int $navigationSort = 1;
 
@@ -126,14 +132,8 @@ class SalesReportPage extends Page implements HasTable
                 Filter::make('date_range')
                     ->label('Rentang Tanggal')
                     ->form([
-                        DatePicker::make('from')
-                            ->label('Dari')
-                            ->default(now()->startOfMonth())
-                            ->native(false),
-                        DatePicker::make('until')
-                            ->label('Sampai')
-                            ->default(now())
-                            ->native(false),
+                        DatePicker::make('from')->label('Dari')->default(now()->startOfMonth())->native(false),
+                        DatePicker::make('until')->label('Sampai')->default(now())->native(false),
                     ])
                     ->query(
                         fn(Builder $query, array $data) => $query
@@ -147,11 +147,7 @@ class SalesReportPage extends Page implements HasTable
 
                 SelectFilter::make('payment_method')
                     ->label('Metode Bayar')
-                    ->options([
-                        'cash' => 'Cash',
-                        'transfer' => 'Transfer',
-                        'ewallet' => 'E-Wallet',
-                    ]),
+                    ->options(['cash' => 'Cash', 'transfer' => 'Transfer', 'ewallet' => 'E-Wallet']),
 
                 SelectFilter::make('user_id')
                     ->label('Kasir')

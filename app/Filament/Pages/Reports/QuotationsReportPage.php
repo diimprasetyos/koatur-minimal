@@ -1,10 +1,9 @@
 <?php
-
 namespace App\Filament\Pages\Reports;
 
 use App\Models\Quotations\Quotation;
+use App\Traits\HasReportActions;
 use BackedEnum;
-
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
@@ -22,7 +21,12 @@ use UnitEnum;
 
 class QuotationsReportPage extends Page implements HasTable
 {
-    use InteractsWithTable;
+    use InteractsWithTable, HasReportActions;
+
+    const REPORT_TYPE = 'quotations';
+    const REPORT_TITLE = 'Laporan Penawaran';
+
+    protected static ?string $title = self::REPORT_TITLE;
 
     protected string $view = 'filament.pages.reports.quotations-report-page';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::DocumentText;
@@ -30,20 +34,14 @@ class QuotationsReportPage extends Page implements HasTable
     protected static ?string $navigationLabel = 'Laporan Penawaran';
     protected static ?int $navigationSort = 2;
 
-    // ── Summary properties ────────────────────────────────────
-
     public function getTotalQuotations(): int
     {
         return $this->getFilteredQuery()->count();
     }
-
     public function getTotalAccepted(): int
     {
-        return $this->getFilteredQuery()
-            ->where('status', Quotation::STATUS_ACCEPTED)
-            ->count();
+        return $this->getFilteredQuery()->where('status', Quotation::STATUS_ACCEPTED)->count();
     }
-
     public function getTotalPotentialValue(): string
     {
         return 'Rp ' . number_format(
@@ -55,15 +53,12 @@ class QuotationsReportPage extends Page implements HasTable
             '.'
         );
     }
-
     public function getConversionRate(): string
     {
         $total = $this->getTotalQuotations();
         $accepted = $this->getTotalAccepted();
-
         if ($total === 0)
             return '0%';
-
         return number_format(($accepted / $total) * 100, 1) . '%';
     }
 
@@ -71,8 +66,6 @@ class QuotationsReportPage extends Page implements HasTable
     {
         return Quotation::where('tenant_id', Filament::getTenant()?->id);
     }
-
-    // ── Table ─────────────────────────────────────────────────
 
     public function table(Table $table): Table
     {
@@ -84,76 +77,33 @@ class QuotationsReportPage extends Page implements HasTable
                     ->latest()
             )
             ->columns([
-                TextColumn::make('created_at')
-                    ->label('Tanggal')
-                    ->date('d M Y')
-                    ->sortable(),
-
-                TextColumn::make('code')
-                    ->label('No. Penawaran')
-                    ->searchable()
-                    ->fontFamily('mono')
-                    ->copyable(),
-
-                TextColumn::make('customer.name')
-                    ->label('Pelanggan')
-                    ->placeholder('-'),
-
-                TextColumn::make('user.name')
-                    ->label('Dibuat Oleh'),
-
-                TextColumn::make('valid_until')
-                    ->label('Berlaku Sampai')
-                    ->date('d M Y')
-                    ->placeholder('-')
-                    ->color(fn($record) => $record?->isExpired() ? 'danger' : null),
-
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->formatStateUsing(fn(string $state) => match ($state) {
-                        'draft' => '📝 Draft',
-                        'sent' => '📤 Terkirim',
-                        'accepted' => '✅ Diterima',
-                        'rejected' => '❌ Ditolak',
-                        'expired' => '🕒 Kadaluarsa',
-                        default => $state,
+                TextColumn::make('created_at')->label('Tanggal')->date('d M Y')->sortable(),
+                TextColumn::make('code')->label('No. Penawaran')->searchable()->fontFamily('mono')->copyable(),
+                TextColumn::make('customer.name')->label('Pelanggan')->placeholder('-'),
+                TextColumn::make('user.name')->label('Dibuat Oleh'),
+                TextColumn::make('valid_until')->label('Berlaku Sampai')->date('d M Y')->placeholder('-')
+                    ->color(fn($r) => $r?->isExpired() ? 'danger' : null),
+                TextColumn::make('status')->label('Status')->badge()
+                    ->formatStateUsing(fn($s) => match ($s) {
+                        'draft' => '📝 Draft', 'sent' => '📤 Terkirim', 'accepted' => '✅ Diterima',
+                        'rejected' => '❌ Ditolak', 'expired' => '🕒 Kadaluarsa', default => $s,
                     })
-                    ->color(fn(string $state) => match ($state) {
-                        'accepted' => 'success',
-                        'sent' => 'info',
-                        'draft' => 'gray',
-                        'rejected' => 'danger',
-                        'expired' => 'warning',
-                        default => 'gray',
+                    ->color(fn($s) => match ($s) {
+                        'accepted' => 'success', 'sent' => 'info', 'draft' => 'gray',
+                        'rejected' => 'danger', 'expired' => 'warning', default => 'gray',
                     }),
-
-                TextColumn::make('items_count')
-                    ->label('Item')
-                    ->counts('items')
-                    ->alignCenter(),
-
-                TextColumn::make('total_amount')
-                    ->label('Total Penawaran')
-                    ->money('IDR')
-                    ->sortable()
+                TextColumn::make('items_count')->label('Item')->counts('items')->alignCenter(),
+                TextColumn::make('total_amount')->label('Total Penawaran')->money('IDR')->sortable()
                     ->summarize(Sum::make()->money('IDR')->label('Total Nilai Penawaran')),
             ])
             ->filters([
-                Filter::make('date_range')
-                    ->label('Rentang Tanggal')
+                Filter::make('date_range')->label('Rentang Tanggal')
                     ->form([
-                        DatePicker::make('from')
-                            ->label('Dari')
-                            ->default(now()->startOfMonth())
-                            ->native(false),
-                        DatePicker::make('until')
-                            ->label('Sampai')
-                            ->default(now())
-                            ->native(false),
+                        DatePicker::make('from')->label('Dari')->default(now()->startOfMonth())->native(false),
+                        DatePicker::make('until')->label('Sampai')->default(now())->native(false),
                     ])
                     ->query(
-                        fn(Builder $query, array $data) => $query
+                        fn(Builder $q, array $data) => $q
                             ->when($data['from'], fn($q) => $q->whereDate('created_at', '>=', $data['from']))
                             ->when($data['until'], fn($q) => $q->whereDate('created_at', '<=', $data['until']))
                     )
@@ -161,20 +111,9 @@ class QuotationsReportPage extends Page implements HasTable
                         $data['from'] ? 'Dari: ' . Carbon::parse($data['from'])->format('d M Y') : null,
                         $data['until'] ? 'Sampai: ' . Carbon::parse($data['until'])->format('d M Y') : null,
                     ])),
-
-                SelectFilter::make('status')
-                    ->label('Status')
-                    ->options([
-                        'draft' => 'Draft',
-                        'sent' => 'Terkirim',
-                        'accepted' => 'Diterima',
-                        'rejected' => 'Ditolak',
-                        'expired' => 'Kadaluarsa',
-                    ]),
-
-                SelectFilter::make('customer_id')
-                    ->label('Pelanggan')
-                    ->relationship('customer', 'name'),
+                SelectFilter::make('status')->label('Status')
+                    ->options(['draft' => 'Draft', 'sent' => 'Terkirim', 'accepted' => 'Diterima', 'rejected' => 'Ditolak', 'expired' => 'Kadaluarsa']),
+                SelectFilter::make('customer_id')->label('Pelanggan')->relationship('customer', 'name'),
             ])
             ->defaultSort('created_at', 'desc');
     }

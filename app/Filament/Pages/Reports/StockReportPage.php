@@ -1,8 +1,8 @@
 <?php
-
 namespace App\Filament\Pages\Reports;
 
 use App\Models\Product\Product;
+use App\Traits\HasReportActions;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
@@ -20,16 +20,17 @@ use UnitEnum;
 
 class StockReportPage extends Page implements HasTable
 {
-    use InteractsWithTable;
+    use InteractsWithTable, HasReportActions;
+
+    const REPORT_TYPE = 'stock';
+    const REPORT_TITLE = 'Laporan Stok';
+
+    protected static ?string $title = self::REPORT_TITLE;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::ArchiveBox;
-
     protected static string|UnitEnum|null $navigationGroup = 'Laporan';
-
     protected static ?string $navigationLabel = 'Laporan Stok';
-
     protected static ?int $navigationSort = 3;
-
     protected string $view = 'filament.pages.reports.stock-report-page';
 
     public function table(Table $table): Table
@@ -42,89 +43,32 @@ class StockReportPage extends Page implements HasTable
                     ->with('category')
             )
             ->columns([
-                TextColumn::make('name')
-                    ->label('Produk')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('sku')
-                    ->label('SKU')
-                    ->fontFamily('mono')
-                    ->placeholder('—')
-                    ->copyable(),
-
-                TextColumn::make('category.name')
-                    ->label('Kategori')
-                    ->badge()
-                    ->color('primary')
-                    ->placeholder('—'),
-
-                TextColumn::make('stock')
-                    ->label('Stok')
-                    ->alignCenter()
-                    ->sortable()
-                    ->badge()
-                    ->color(fn(Product $record): string => match (true) {
-                        !$record->track_stock => 'gray',
-                        $record->stock <= 0 => 'danger',
-                        $record->stock <= 5 => 'warning',
+                TextColumn::make('name')->label('Produk')->searchable()->sortable(),
+                TextColumn::make('sku')->label('SKU')->fontFamily('mono')->placeholder('—')->copyable(),
+                TextColumn::make('category.name')->label('Kategori')->badge()->color('primary')->placeholder('—'),
+                TextColumn::make('stock')->label('Stok')->alignCenter()->sortable()->badge()
+                    ->color(fn(Product $r): string => match (true) {
+                        !$r->track_stock => 'gray',
+                        $r->stock <= 0 => 'danger',
+                        $r->stock <= 5 => 'warning',
                         default => 'success',
                     })
-                    ->formatStateUsing(
-                        fn(Product $record): string =>
-                        $record->track_stock ? (string) $record->stock : '∞'
-                    ),
-
-                TextColumn::make('price')
-                    ->label('Harga Jual')
-                    ->money('IDR')
-                    ->sortable(),
-
-                TextColumn::make('cost_price')
-                    ->label('Modal')
-                    ->money('IDR')
-                    ->sortable()
+                    ->formatStateUsing(fn(Product $r): string => $r->track_stock ? (string) $r->stock : '∞'),
+                TextColumn::make('price')->label('Harga Jual')->money('IDR')->sortable(),
+                TextColumn::make('cost_price')->label('Modal')->money('IDR')->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-
-                // Nilai stok = stock * cost_price
-                TextColumn::make('stock_value')
-                    ->label('Nilai Stok')
-                    ->money('IDR')
-                    ->sortable()
-                    ->getStateUsing(
-                        fn(Product $record): float =>
-                        $record->track_stock ? ($record->stock * $record->cost_price) : 0
-                    )
+                TextColumn::make('stock_value')->label('Nilai Stok')->money('IDR')->sortable()
+                    ->getStateUsing(fn(Product $r): float => $r->track_stock ? ($r->stock * $r->cost_price) : 0)
                     ->toggleable(isToggledHiddenByDefault: true),
-
-                IconColumn::make('track_stock')
-                    ->label('Pantau Stok')
-                    ->boolean(),
+                IconColumn::make('track_stock')->label('Pantau Stok')->boolean(),
             ])
             ->filters([
-                SelectFilter::make('category_id')
-                    ->label('Kategori')
-                    ->relationship('category', 'name'),
-
-                Filter::make('low_stock')
-                    ->label('Stok Hampir Habis (≤ 5)')
-                    ->query(
-                        fn(Builder $query) => $query
-                            ->where('track_stock', true)
-                            ->where('stock', '<=', 5)
-                            ->where('stock', '>', 0)
-                    ),
-
-                Filter::make('out_of_stock')
-                    ->label('Stok Habis')
-                    ->query(
-                        fn(Builder $query) => $query
-                            ->where('track_stock', true)
-                            ->where('stock', '<=', 0)
-                    ),
-
-                TernaryFilter::make('track_stock')
-                    ->label('Pantau Stok'),
+                SelectFilter::make('category_id')->label('Kategori')->relationship('category', 'name'),
+                Filter::make('low_stock')->label('Stok Hampir Habis (≤ 5)')
+                    ->query(fn(Builder $q) => $q->where('track_stock', true)->where('stock', '<=', 5)->where('stock', '>', 0)),
+                Filter::make('out_of_stock')->label('Stok Habis')
+                    ->query(fn(Builder $q) => $q->where('track_stock', true)->where('stock', '<=', 0)),
+                TernaryFilter::make('track_stock')->label('Pantau Stok'),
             ])
             ->defaultSort('stock', 'asc');
     }

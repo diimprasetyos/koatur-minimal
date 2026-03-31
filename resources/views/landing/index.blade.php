@@ -15,7 +15,7 @@
         <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
 
             {{-- Logo --}}
-            <div class="text-3xl font-bold text-blue-600">LOGO</div>
+            <div class="text-3xl font-bold text-blue-600">Koatur</div>
 
             {{-- Desktop Nav --}}
             <nav class="hidden md:flex items-center gap-8">
@@ -26,10 +26,35 @@
 
             {{-- Desktop CTA --}}
             <div class="hidden md:flex items-center gap-3">
-                <a href="{{ route('filament.admin.auth.login') }}"
-                    class="px-6 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-gray-50 transition">
-                    Login
-                </a>
+                {{-- Login Dropdown --}}
+                <div class="relative" id="login-dropdown-wrapper">
+                    <button id="login-dropdown-btn"
+                        class="px-6 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-gray-50 transition flex items-center gap-1.5"
+                        aria-expanded="false" aria-haspopup="true">
+                        Login
+                        <svg class="w-4 h-4 transition-transform duration-200" id="login-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="login-dropdown-menu"
+                        class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg py-1.5 z-50">
+                        <a href="{{ route('filament.admin.auth.login') }}"
+                            class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Login sebagai Pengguna
+                        </a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <a href="{{ route('filament.superadmin.auth.login') }}"
+                            class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition">
+                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            Login sebagai Super Admin
+                        </a>
+                    </div>
+                </div>
                 <a href="#"
                     class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
                     Sign up
@@ -65,10 +90,24 @@
                 Fitur
             </a>
             <div class="pt-3 flex flex-col gap-2">
-                <a href="{{ route('filament.admin.auth.login') }}"
-                    class="w-full text-center py-2.5 border border-blue-600 text-blue-600 rounded-md hover:bg-gray-50 transition font-medium">
-                    Login
-                </a>
+                {{-- Mobile Login: pilihan role --}}
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-400 font-medium px-1">Login sebagai:</p>
+                    <a href="{{ route('filament.admin.auth.login') }}"
+                        class="flex items-center gap-2 w-full py-2.5 px-4 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition font-medium text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Pengguna
+                    </a>
+                    <a href="{{ route('filament.superadmin.auth.login') }}"
+                        class="flex items-center gap-2 w-full py-2.5 px-4 border border-amber-500 text-amber-600 rounded-md hover:bg-amber-50 transition font-medium text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Super Admin
+                    </a>
+                </div>
                 <a href="#"
                     class="w-full text-center py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium">
                     Sign up
@@ -323,7 +362,7 @@
         <div class="max-w-7xl mx-auto px-4 md:px-8">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10 md:mb-12">
                 <div class="col-span-2 md:col-span-1">
-                    <div class="text-3xl font-bold mb-2">LOGO</div>
+                    <div class="text-3xl font-bold mb-2">Koatur </div>
                     <p class="text-white/70 text-sm mt-2">Solusi kasir modern untuk toko Anda.</p>
                 </div>
                 <div>
@@ -337,7 +376,7 @@
                 <div>
                     <h4 class="font-bold mb-4">Hubungi Kami</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="mailto:support@example.com" class="hover:opacity-80 transition">support@example.com</a></li>
+                        <li><a href="/cdn-cgi/l/email-protection#a0d3d5d0d0cfd2d4e0c5d8c1cdd0ccc58ec3cfcd" class="hover:opacity-80 transition"><span class="__cf_email__" data-cfemail="f2818782829d8086b2978a939f829e97dc919d9f">[email&#160;protected]</span></a></li>
                         <li><a href="tel:+1234567890" class="hover:opacity-80 transition">+123.XXXX.XXXX</a></li>
                     </ul>
                 </div>
@@ -356,7 +395,7 @@
     </footer>
 
     {{-- ======================== SCRIPTS ======================== --}}
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
         // ---- Carousel ----
         let currentSlide = 0;
         const slides = document.querySelectorAll('.carousel-slide');
@@ -401,6 +440,28 @@
         // Init carousel
         showSlide(0);
         startAutoplay();
+
+        // ---- Login Dropdown ----
+        const loginBtn = document.getElementById('login-dropdown-btn');
+        const loginMenu = document.getElementById('login-dropdown-menu');
+        const loginChevron = document.getElementById('login-chevron');
+
+        loginBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = !loginMenu.classList.contains('hidden');
+            loginMenu.classList.toggle('hidden', isOpen);
+            loginChevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+            loginBtn.setAttribute('aria-expanded', String(!isOpen));
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('login-dropdown-wrapper').contains(e.target)) {
+                loginMenu.classList.add('hidden');
+                loginChevron.style.transform = '';
+                loginBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
 
         // ---- Mobile Menu ----
         const btn = document.getElementById('mobile-menu-btn');
