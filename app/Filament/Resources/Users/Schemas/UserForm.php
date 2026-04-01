@@ -37,7 +37,11 @@ class UserForm
 
                 Select::make('roles')
                     ->label('Role')
-                    ->relationship('roles', 'name')
+                    ->relationship(
+                        'roles',
+                        'name',
+                        fn($query) => $query->where('name', '!=', 'super_admin')
+                    )
                     ->preload()
                     ->searchable()
                     ->required(),
