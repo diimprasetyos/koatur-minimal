@@ -16,7 +16,6 @@ return new class extends Migration {
 
             $table->foreignId('current_tenant_id')
                 ->nullable()
-                ->after('is_active')
                 ->constrained('tenants')
                 ->nullOnDelete();
 
