@@ -372,99 +372,74 @@
         </div>
     </footer>
 
-    {{-- ======================== SCRIPTS ======================== --}}
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-        // ---- Carousel ----
-        let currentSlide = 0;
-        const slides = document.querySelectorAll('.carousel-slide');
-        const dots = document.querySelectorAll('.carousel-dot');
-        let autoplayInterval;
+ <script>
+    // ---- Carousel ----
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.carousel-slide');
+    const dots = document.querySelectorAll('.carousel-dot');
+    let autoplayInterval;
 
-        function showSlide(index) {
-            slides.forEach(s => {
-                s.classList.remove('active');
-                s.style.opacity = '0';
-                s.style.zIndex = '0';
-            });
-            dots.forEach(d => d.classList.remove('active', 'bg-blue-600'));
+    function showSlide(index) {
+        slides.forEach(s => {
+            s.classList.remove('active');
+            s.style.opacity = '0';
+            s.style.zIndex = '0';
+        });
+        dots.forEach(d => d.classList.remove('active', 'bg-blue-600'));
 
-            slides[index].classList.add('active');
-            slides[index].style.opacity = '1';
-            slides[index].style.zIndex = '10';
-            dots[index].classList.add('active', 'bg-blue-600');
-            currentSlide = index;
-        }
+        slides[index].classList.add('active');
+        slides[index].style.opacity = '1';
+        slides[index].style.zIndex = '10';
+        dots[index].classList.add('active', 'bg-blue-600');
+        currentSlide = index;
+    }
 
-        function changeSlide(direction) {
-            let next = (currentSlide + direction + slides.length) % slides.length;
-            showSlide(next);
-            resetAutoplay();
-        }
+    function changeSlide(direction) {
+        let next = (currentSlide + direction + slides.length) % slides.length;
+        showSlide(next);
+        resetAutoplay();
+    }
 
-        function goToSlide(index) {
-            showSlide(index);
-            resetAutoplay();
-        }
+    function goToSlide(index) {
+        showSlide(index);
+        resetAutoplay();
+    }
 
-        function startAutoplay() {
-            autoplayInterval = setInterval(() => changeSlide(1), 4000);
-        }
+    function startAutoplay() {
+        autoplayInterval = setInterval(() => changeSlide(1), 4000);
+    }
 
-        function resetAutoplay() {
-            clearInterval(autoplayInterval);
-            startAutoplay();
-        }
-
-        // Init carousel
-        showSlide(0);
+    function resetAutoplay() {
+        clearInterval(autoplayInterval);
         startAutoplay();
+    }
 
-        // ---- Login Dropdown ----
-        const loginBtn = document.getElementById('login-dropdown-btn');
-        const loginMenu = document.getElementById('login-dropdown-menu');
-        const loginChevron = document.getElementById('login-chevron');
+    showSlide(0);
+    startAutoplay();
 
-        loginBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isOpen = !loginMenu.classList.contains('hidden');
-            loginMenu.classList.toggle('hidden', isOpen);
-            loginChevron.style.transform = isOpen ? '' : 'rotate(180deg)';
-            loginBtn.setAttribute('aria-expanded', String(!isOpen));
+    // ---- Mobile Menu ----
+    const btn = document.getElementById('mobile-menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    const iconOpen = document.getElementById('icon-open');
+    const iconClose = document.getElementById('icon-close');
+
+    btn.addEventListener('click', () => {
+        const isOpen = !menu.classList.contains('hidden');
+        menu.classList.toggle('hidden', isOpen);
+        iconOpen.classList.toggle('hidden', !isOpen);
+        iconClose.classList.toggle('hidden', isOpen);
+        btn.setAttribute('aria-expanded', String(!isOpen));
+    });
+
+    menu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            menu.classList.add('hidden');
+            iconOpen.classList.remove('hidden');
+            iconClose.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
         });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!document.getElementById('login-dropdown-wrapper').contains(e.target)) {
-                loginMenu.classList.add('hidden');
-                loginChevron.style.transform = '';
-                loginBtn.setAttribute('aria-expanded', 'false');
-            }
-        });
-
-        // ---- Mobile Menu ----
-        const btn = document.getElementById('mobile-menu-btn');
-        const menu = document.getElementById('mobile-menu');
-        const iconOpen = document.getElementById('icon-open');
-        const iconClose = document.getElementById('icon-close');
-
-        btn.addEventListener('click', () => {
-            const isOpen = !menu.classList.contains('hidden');
-            menu.classList.toggle('hidden', isOpen);
-            iconOpen.classList.toggle('hidden', !isOpen);
-            iconClose.classList.toggle('hidden', isOpen);
-            btn.setAttribute('aria-expanded', String(!isOpen));
-        });
-
-        // Close mobile menu when a nav link is clicked
-        menu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                menu.classList.add('hidden');
-                iconOpen.classList.remove('hidden');
-                iconClose.classList.add('hidden');
-                btn.setAttribute('aria-expanded', 'false');
-            });
-        });
-    </script>
+    });
+</script>
 
 </body>
 

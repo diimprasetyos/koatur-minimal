@@ -37,12 +37,16 @@ class StockReportPage extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                Product::query()
-                    ->where('tenant_id', Filament::getTenant()?->id)
+            ->query(function (): Builder {
+                $tenantId = Filament::getTenant()?->id;
+
+                abort_if(!$tenantId, 403);
+
+                return Product::query()
+                    ->where('tenant_id', $tenantId)
                     ->where('is_active', true)
-                    ->with('category')
-            )
+                    ->with('category');
+            })
             ->columns([
                 TextColumn::make('name')->label('Produk')->searchable()->sortable(),
                 TextColumn::make('sku')->label('SKU')->fontFamily('mono')->placeholder('—')->copyable(),
