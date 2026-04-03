@@ -1,6 +1,7 @@
 <?php
 namespace App\Filament\Pages\Reports;
 
+use App\Models\Product\Category;
 use App\Models\Product\Product;
 use App\Traits\HasReportActions;
 use BackedEnum;
@@ -63,9 +64,14 @@ class StockReportPage extends Page implements HasTable
                 IconColumn::make('track_stock')->label('Pantau Stok')->boolean(),
             ])
             ->filters([
-                SelectFilter::make('category_id')->label('Kategori')->relationship('category', 'name'),
-                Filter::make('low_stock')->label('Stok Hampir Habis (≤ 5)')
-                    ->query(fn(Builder $q) => $q->where('track_stock', true)->where('stock', '<=', 5)->where('stock', '>', 0)),
+                SelectFilter::make('category_id')
+                    ->label('Kategori')
+                    ->options(
+                        fn() => Category::query()
+                            ->where('tenant_id', Filament::getTenant()?->id)
+                            ->pluck('name', 'id')
+                            ->toArray()
+                    ),
                 Filter::make('out_of_stock')->label('Stok Habis')
                     ->query(fn(Builder $q) => $q->where('track_stock', true)->where('stock', '<=', 0)),
                 TernaryFilter::make('track_stock')->label('Pantau Stok'),
