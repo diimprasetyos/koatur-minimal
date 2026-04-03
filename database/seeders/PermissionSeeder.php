@@ -19,17 +19,14 @@ class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         $guard = 'web';
 
         // ─────────────────────────────────────────────────────────────
-        // DEFINISI PERMISSION PER KELOMPOK
-        // Format mengikuti Filament Shield: "Action:Model"
+        // DEFINISI PERMISSION
         // ─────────────────────────────────────────────────────────────
 
-        // Permission untuk laporan (Report Pages & Widgets)
         $reportPermissions = [
             'View:PurchaseReturnReportPage',
             'View:PurchasesReportPage',
@@ -41,7 +38,6 @@ class PermissionSeeder extends Seeder
             'View:SalesChartWidget',
         ];
 
-        // Permission untuk Sales (transaksi penjualan)
         $salePermissions = [
             'ViewAny:Sale',
             'View:Sale',
@@ -57,7 +53,6 @@ class PermissionSeeder extends Seeder
             'Reorder:Sale',
         ];
 
-        // Permission untuk Sale Return
         $saleReturnPermissions = [
             'ViewAny:SaleReturn',
             'View:SaleReturn',
@@ -73,7 +68,6 @@ class PermissionSeeder extends Seeder
             'Reorder:SaleReturn',
         ];
 
-        // Permission untuk Produk
         $productPermissions = [
             'ViewAny:Product',
             'View:Product',
@@ -89,7 +83,6 @@ class PermissionSeeder extends Seeder
             'Reorder:Product',
         ];
 
-        // Permission untuk Riwayat Stok (Stock Movement)
         $stockMovementPermissions = [
             'ViewAny:StockMovement',
             'View:StockMovement',
@@ -105,7 +98,6 @@ class PermissionSeeder extends Seeder
             'Reorder:StockMovement',
         ];
 
-        // Permission untuk Stock Adjustment
         $stockAdjustmentPermissions = [
             'ViewAny:StockAdjustment',
             'View:StockAdjustment',
@@ -121,7 +113,6 @@ class PermissionSeeder extends Seeder
             'Reorder:StockAdjustment',
         ];
 
-        // Permission untuk Kategori
         $categoryPermissions = [
             'ViewAny:Category',
             'View:Category',
@@ -137,7 +128,6 @@ class PermissionSeeder extends Seeder
             'Reorder:Category',
         ];
 
-        // Permission untuk Supplier
         $supplierPermissions = [
             'ViewAny:Supplier',
             'View:Supplier',
@@ -153,7 +143,6 @@ class PermissionSeeder extends Seeder
             'Reorder:Supplier',
         ];
 
-        // Permission untuk Customer
         $customerPermissions = [
             'ViewAny:Customer',
             'View:Customer',
@@ -169,7 +158,6 @@ class PermissionSeeder extends Seeder
             'Reorder:Customer',
         ];
 
-        // Permission untuk Purchase
         $purchasePermissions = [
             'ViewAny:Purchase',
             'View:Purchase',
@@ -185,7 +173,6 @@ class PermissionSeeder extends Seeder
             'Reorder:Purchase',
         ];
 
-        // Permission untuk Purchase Return
         $purchaseReturnPermissions = [
             'ViewAny:PurchaseReturn',
             'View:PurchaseReturn',
@@ -201,7 +188,6 @@ class PermissionSeeder extends Seeder
             'Reorder:PurchaseReturn',
         ];
 
-        // Permission untuk Quotation
         $quotationPermissions = [
             'ViewAny:Quotation',
             'View:Quotation',
@@ -217,7 +203,6 @@ class PermissionSeeder extends Seeder
             'Reorder:Quotation',
         ];
 
-        // Permission untuk Expense
         $expensePermissions = [
             'ViewAny:Expense',
             'View:Expense',
@@ -233,7 +218,6 @@ class PermissionSeeder extends Seeder
             'Reorder:Expense',
         ];
 
-        // Permission untuk Expense Category
         $expenseCategoryPermissions = [
             'ViewAny:ExpenseCategory',
             'View:ExpenseCategory',
@@ -249,7 +233,6 @@ class PermissionSeeder extends Seeder
             'Reorder:ExpenseCategory',
         ];
 
-        // Permission untuk User & Role management
         $userPermissions = [
             'ViewAny:User',
             'View:User',
@@ -323,64 +306,28 @@ class PermissionSeeder extends Seeder
         }
 
         // ─────────────────────────────────────────────────────────────
-        // ROLES & PERMISSIONS
+        // ROLES
         // ─────────────────────────────────────────────────────────────
 
-        /**
-         * SUPER_ADMIN — akses penuh ke seluruh platform (lintas tenant)
-         * Hanya bisa login di panel /superadmin, tidak punya tenant.
-         * Shield secara konvensi membebaskan super_admin dari cek permission,
-         * tapi role-nya tetap harus ada di DB agar hasRole() bekerja.
-         */
+        // SUPER ADMIN — akses penuh lintas tenant
         Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => $guard]);
-        // Tidak perlu syncPermissions — akses diatur lewat canAccessPanel()
-        // dan Shield gate di SuperadminPanelProvider.
 
-        /**
-         * ADMIN — akses penuh ke semua permission di panel tenant
-         */
-        /** @var Role $adminRole */
-        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => $guard]);
-        $adminRole->syncPermissions(Permission::all());
+        // OWNER — akses penuh di panel tenant
+        $ownerRole = Role::firstOrCreate(['name' => 'owner', 'guard_name' => $guard]);
+        $ownerRole->syncPermissions(Permission::all());
 
-        /**
-         * KASIR — hanya bisa akses:
-         *   - Laporan (view only: semua report page & widget)
-         *   - Sales (full CRUD)
-         *   - Sale Return (full CRUD)
-         *   - Produk (view only)
-         *   - Riwayat Stok / Stock Movement (view only)
-         */
+        // KASIR — laporan, sales, sale return, view produk & stok
         $kasirPermissions = array_merge(
-            // Laporan: hanya view
             $reportPermissions,
-
-            // Sales: full CRUD
             $salePermissions,
-
-            // Sale Return: full CRUD
             $saleReturnPermissions,
-
-            // Produk: hanya view
-            [
-                'ViewAny:Product',
-                'View:Product',
-            ],
-
-            // Riwayat Stok: hanya view
-            [
-                'ViewAny:StockMovement',
-                'View:StockMovement',
-            ],
+            ['ViewAny:Product', 'View:Product'],
+            ['ViewAny:StockMovement', 'View:StockMovement'],
         );
-
-        /** @var Role $kasirRole */
         $kasirRole = Role::firstOrCreate(['name' => 'kasir', 'guard_name' => $guard]);
         $kasirRole->syncPermissions($kasirPermissions);
 
-        /**
-         * GUDANG — fokus ke operasional stok & pembelian
-         */
+        // GUDANG — produk, stok, pembelian, supplier, kategori
         $gudangPermissions = array_merge(
             $productPermissions,
             $stockMovementPermissions,
@@ -389,15 +336,8 @@ class PermissionSeeder extends Seeder
             $supplierPermissions,
             $purchasePermissions,
             $purchaseReturnPermissions,
-            // Laporan stok saja
-            [
-                'View:StockReportPage',
-                'View:PurchasesReportPage',
-                'View:PurchaseReturnReportPage',
-            ],
+            ['View:StockReportPage', 'View:PurchasesReportPage', 'View:PurchaseReturnReportPage'],
         );
-
-        /** @var Role $gudangRole */
         $gudangRole = Role::firstOrCreate(['name' => 'gudang', 'guard_name' => $guard]);
         $gudangRole->syncPermissions($gudangPermissions);
 
@@ -405,15 +345,11 @@ class PermissionSeeder extends Seeder
         // ASSIGN ROLES KE USER
         // ─────────────────────────────────────────────────────────────
         $superAdmin = \App\Models\User::where('email', 'admin@test.com')->first();
-        $admin = \App\Models\User::where('email', 'admin@example.com')->first();
-        $budi = \App\Models\User::where('email', 'budi@example.com')->first();
-        $siti = \App\Models\User::where('email', 'siti@example.com')->first();
-        $hendra = \App\Models\User::where('email', 'hendra@example.com')->first();
-
         $superAdmin?->syncRoles('super_admin');
-        $admin?->syncRoles('admin');
-        $budi?->syncRoles('kasir');
-        $siti?->syncRoles('kasir');
-        $hendra?->syncRoles('gudang');
+
+        // Assign role owner ke semua user owner.tokoN@example.com
+        \App\Models\User::where('email', 'like', 'owner.toko%@test.com')
+            ->get()
+            ->each(fn($user) => $user->syncRoles('owner'));
     }
 }

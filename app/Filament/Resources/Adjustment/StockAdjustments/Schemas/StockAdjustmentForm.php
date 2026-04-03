@@ -51,7 +51,7 @@ class StockAdjustmentForm
                         ->label('Status')
                         ->required()
                         ->options([
-                            StockAdjustment::STATUS_DRAFT     => '📝 Draft',
+                            StockAdjustment::STATUS_DRAFT => '📝 Draft',
                             StockAdjustment::STATUS_CONFIRMED => '✅ Konfirmasi & Terapkan',
                         ])
                         ->default(StockAdjustment::STATUS_CONFIRMED)
@@ -77,24 +77,31 @@ class StockAdjustmentForm
                             // Pilih produk
                             Select::make('product_id')
                                 ->label('Produk')
-                                ->relationship(
-                                    'product',
-                                    'name',
-                                    fn($q) => $q?->where('tenant_id', Filament::getTenant()?->id)
-                                        ?->where('is_active', true)
-                                        ?->where('track_stock', true)
-                                )
+                                ->options(function (): array {
+                                    $tenantId = Filament::getTenant()?->id;
+
+                                    if (!$tenantId)
+                                        return [];
+
+                                    return Product::query()
+                                        ->where('tenant_id', $tenantId)
+                                        ->where('is_active', true)
+                                        ->where('track_stock', true)
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                })
                                 ->searchable()
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, ?string $state) {
-                                    if (!$state) return;
+                                    if (!$state)
+                                        return;
                                     $product = Product::find($state);
-                                    if (!$product) return;
+                                    if (!$product)
+                                        return;
 
-                                    // Auto-fill stok saat ini sebagai stock_before
                                     $set('stock_before', $product->stock);
-                                    $set('stock_after',  $product->stock); // default: tidak berubah
+                                    $set('stock_after', $product->stock);
                                 })
                                 ->columnSpan(2),
 
@@ -124,8 +131,8 @@ class StockAdjustmentForm
                                 ->live()
                                 ->content(function (Get $get): HtmlString {
                                     $before = (int) ($get('stock_before') ?? 0);
-                                    $after  = (int) ($get('stock_after')  ?? 0);
-                                    $diff   = $after - $before;
+                                    $after = (int) ($get('stock_after') ?? 0);
+                                    $diff = $after - $before;
 
                                     if ($diff > 0) {
                                         $label = '<span class="text-sm font-semibold text-success-600">+' . $diff . ' pcs</span>';
@@ -171,24 +178,26 @@ class StockAdjustmentForm
                         ->live()
                         ->content(function (Get $get): HtmlString {
                             $items = $get('items') ?? [];
-                            $adds      = 0;
+                            $adds = 0;
                             $subtracts = 0;
-                            $total     = count($items);
+                            $total = count($items);
 
                             foreach ($items as $item) {
                                 $diff = (int) ($item['stock_after'] ?? 0) - (int) ($item['stock_before'] ?? 0);
-                                if ($diff > 0) $adds++;
-                                elseif ($diff < 0) $subtracts++;
+                                if ($diff > 0)
+                                    $adds++;
+                                elseif ($diff < 0)
+                                    $subtracts++;
                             }
 
                             $noChange = $total - $adds - $subtracts;
 
                             return new HtmlString(
                                 '<div class="flex gap-6 text-sm">' .
-                                    '<span class="text-success-600 font-medium">✅ Penambahan: ' . $adds . ' produk</span>' .
-                                    '<span class="text-danger-600 font-medium">❌ Pengurangan: ' . $subtracts . ' produk</span>' .
-                                    '<span class="text-gray-500">— Tidak berubah: ' . $noChange . ' produk</span>' .
-                                    '</div>'
+                                '<span class="text-success-600 font-medium">✅ Penambahan: ' . $adds . ' produk</span>' .
+                                '<span class="text-danger-600 font-medium">❌ Pengurangan: ' . $subtracts . ' produk</span>' .
+                                '<span class="text-gray-500">— Tidak berubah: ' . $noChange . ' produk</span>' .
+                                '</div>'
                             );
                         })
                         ->columnSpanFull(),

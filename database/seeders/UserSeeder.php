@@ -11,88 +11,66 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $tenant1 = DB::table('tenants')->where('slug', 'toko-maju-jaya')->first();
-        $tenant2 = DB::table('tenants')->where('slug', 'warung-berkah-abadi')->first();
-        $tenant3 = DB::table('tenants')->where('slug', 'cv-sumber-rejeki')->first();
+        $tenants = DB::table('tenants')
+            ->where('slug', 'like', 'toko-%')
+            ->orderBy('id')
+            ->get();
 
-        $users = [
-            [
-                'uuid' => Str::uuid(),
-                'current_tenant_id' => $tenant1->id,
-                'name' => 'Super Admin',
-                'email' => 'admin@test.com',
-                'password' => Hash::make('admin123'),
-                'subscription_plan' => 'pro',
-                'is_active' => true,
-                'remember_token' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'uuid' => Str::uuid(),
-                'current_tenant_id' => $tenant1->id,
-                'name' => 'Admin Utama',
-                'email' => 'admin@example.com',
-                'password' => Hash::make('password'),
-                'subscription_plan' => 'pro',
-                'is_active' => true,
-                'remember_token' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'uuid' => Str::uuid(),
-                'current_tenant_id' => $tenant1->id,
-                'name' => 'Budi Santoso',
-                'email' => 'budi@example.com',
-                'password' => Hash::make('password'),
-                'subscription_plan' => 'basic',
-                'is_active' => true,
-                'remember_token' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'uuid' => Str::uuid(),
-                'current_tenant_id' => $tenant2->id,
-                'name' => 'Siti Aminah',
-                'email' => 'siti@example.com',
-                'password' => Hash::make('password'),
-                'subscription_plan' => 'basic',
-                'is_active' => true,
-                'remember_token' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'uuid' => Str::uuid(),
-                'current_tenant_id' => $tenant3->id,
-                'name' => 'Hendra Wijaya',
-                'email' => 'hendra@example.com',
-                'password' => Hash::make('password'),
-                'subscription_plan' => 'pro',
-                'is_active' => true,
-                'remember_token' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+        $now = now();
+        $users = [];
+
+        // ─────────────────────────────────────────────
+        // SUPER ADMIN (tidak terikat tenant tertentu)
+        // ─────────────────────────────────────────────
+        $users[] = [
+            'uuid' => Str::uuid(),
+            'current_tenant_id' => $tenants[0]->id,
+            'name' => 'Super Admin',
+            'email' => 'admin@test.com',
+            'password' => Hash::make('admin123'),
+            'subscription_plan' => 'pro',
+            'is_active' => true,
+            'remember_token' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
         ];
+
+        // ─────────────────────────────────────────────
+        // 13 OWNER — masing-masing milik 1 tenant
+        // ─────────────────────────────────────────────
+        foreach ($tenants as $index => $tenant) {
+            $no = $index + 1;
+            $users[] = [
+                'uuid' => Str::uuid(),
+                'current_tenant_id' => $tenant->id,
+                'name' => 'Owner Toko ' . $no,
+                'email' => 'owner.toko' . $no . '@test.com',
+                'password' => Hash::make('owner123'),
+                'subscription_plan' => 'pro',
+                'is_active' => true,
+                'remember_token' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
 
         DB::table('users')->insert($users);
 
-        // Pivot tenant_user
-        $user1 = DB::table('users')->where('email', 'admin@example.com')->first();
-        $user2 = DB::table('users')->where('email', 'budi@example.com')->first();
-        $user3 = DB::table('users')->where('email', 'siti@example.com')->first();
-        $user4 = DB::table('users')->where('email', 'hendra@example.com')->first();
+        // ─────────────────────────────────────────────
+        // PIVOT tenant_user
+        // ─────────────────────────────────────────────
+        $pivots = [];
+        foreach ($tenants as $tenant) {
+            $owner = DB::table('users')
+                ->where('current_tenant_id', $tenant->id)
+                ->where('email', 'like', 'owner.%')
+                ->first();
 
-        DB::table('tenant_user')->insert([
-            ['tenant_id' => $tenant1->id, 'user_id' => $user1->id],
-            ['tenant_id' => $tenant1->id, 'user_id' => $user2->id],
-            ['tenant_id' => $tenant2->id, 'user_id' => $user3->id],
-            ['tenant_id' => $tenant3->id, 'user_id' => $user4->id],
-            // Admin juga punya akses ke tenant 2 (contoh multi-tenant)
-            ['tenant_id' => $tenant2->id, 'user_id' => $user1->id],
-        ]);
+            if ($owner) {
+                $pivots[] = ['tenant_id' => $tenant->id, 'user_id' => $owner->id];
+            }
+        }
+
+        DB::table('tenant_user')->insert($pivots);
     }
 }
