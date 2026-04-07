@@ -31,11 +31,11 @@ class QuotationForm
                     Select::make('status')
                         ->label('Status')
                         ->options([
-                            Quotation::STATUS_DRAFT    => 'Draft',
-                            Quotation::STATUS_SENT     => 'Terkirim',
+                            Quotation::STATUS_DRAFT => 'Draft',
+                            Quotation::STATUS_SENT => 'Terkirim',
                             Quotation::STATUS_ACCEPTED => 'Diterima',
                             Quotation::STATUS_REJECTED => 'Ditolak',
-                            Quotation::STATUS_EXPIRED  => 'Kadaluarsa',
+                            Quotation::STATUS_EXPIRED => 'Kadaluarsa',
                         ])
                         ->default(Quotation::STATUS_DRAFT)
                         ->required(),
@@ -71,7 +71,8 @@ class QuotationForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function ($state, Set $set) {
-                                    if (! $state) return;
+                                    if (!$state)
+                                        return;
                                     $product = \App\Models\Product\Product::find($state);
                                     if ($product) {
                                         $set('product_name', $product->name);
@@ -92,10 +93,11 @@ class QuotationForm
                                 ->prefix('Rp')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(
-                                    fn (Get $get, Set $set) =>
-                                    $set('subtotal', (float) ($get('quantity') ?? 0) * (float) ($get('price') ?? 0))
-                                ),
+                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                    $qty = (float) ($get('quantity') ?? 0);
+                                    $price = (float) ($state ?? 0);
+                                    $set('subtotal', $qty * $price);
+                                }),
 
                             TextInput::make('quantity')
                                 ->label('Qty')
@@ -104,10 +106,11 @@ class QuotationForm
                                 ->minValue(1)
                                 ->default(1)
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(
-                                    fn (Get $get, Set $set) =>
-                                    $set('subtotal', (float) ($get('quantity') ?? 0) * (float) ($get('price') ?? 0))
-                                ),
+                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                    $qty = (float) ($state ?? 0);
+                                    $price = (float) ($get('price') ?? 0);
+                                    $set('subtotal', $qty * $price);
+                                }),
 
                             TextInput::make('subtotal')
                                 ->label('Subtotal')
@@ -120,10 +123,15 @@ class QuotationForm
                         ->addActionLabel('Tambah Item')
                         ->reorderable(false)
                         ->live()
-                        ->afterStateUpdated(
-                            fn (Get $get, Set $set) =>
-                            self::recalcTotals($get, $set)
-                        ),
+                        ->afterStateUpdated(function (Get $get, Set $set) {
+                            $items = $get('items') ?? [];
+                            $subtotal = collect($items)->sum(
+                                fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
+                            );
+                            $discount = (float) ($get('discount_amount') ?? 0);
+                            $tax = (float) ($get('tax_amount') ?? 0);
+                            $set('total_amount', round($subtotal - $discount + $tax, 2));
+                        }),
                 ]),
 
             Section::make('Ringkasan')
@@ -135,10 +143,15 @@ class QuotationForm
                         ->prefix('Rp')
                         ->default(0)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(
-                            fn (Get $get, Set $set) =>
-                            self::recalcTotals($get, $set)
-                        ),
+                        ->afterStateUpdated(function (Get $get, Set $set) {
+                            $items = $get('items') ?? [];
+                            $subtotal = collect($items)->sum(
+                                fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
+                            );
+                            $discount = (float) ($get('discount_amount') ?? 0);
+                            $tax = (float) ($get('tax_amount') ?? 0);
+                            $set('total_amount', round($subtotal - $discount + $tax, 2));
+                        }),
 
                     TextInput::make('tax_amount')
                         ->label('Pajak')
@@ -146,10 +159,15 @@ class QuotationForm
                         ->prefix('Rp')
                         ->default(0)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(
-                            fn (Get $get, Set $set) =>
-                            self::recalcTotals($get, $set)
-                        ),
+                        ->afterStateUpdated(function (Get $get, Set $set) {
+                            $items = $get('items') ?? [];
+                            $subtotal = collect($items)->sum(
+                                fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
+                            );
+                            $discount = (float) ($get('discount_amount') ?? 0);
+                            $tax = (float) ($get('tax_amount') ?? 0);
+                            $set('total_amount', round($subtotal - $discount + $tax, 2));
+                        }),
 
                     TextInput::make('total_amount')
                         ->label('Total')
@@ -164,12 +182,12 @@ class QuotationForm
 
     protected static function recalcTotals(Get $get, Set $set): void
     {
-        $items    = $get('items') ?? [];
+        $items = $get('items') ?? [];
         $subtotal = collect($items)->sum(
-            fn ($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
+            fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
         );
         $discount = (float) ($get('discount_amount') ?? 0);
-        $tax      = (float) ($get('tax_amount') ?? 0);
+        $tax = (float) ($get('tax_amount') ?? 0);
 
         $set('total_amount', round($subtotal - $discount + $tax, 2));
     }

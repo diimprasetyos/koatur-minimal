@@ -36,7 +36,7 @@ class SaleResource extends Resource
         return 'Penjualan';
     }
 
-    protected static ?string $recordTitleAttribute = 'uuid';
+    protected static ?string $recordTitleAttribute = 'invoice_number';
 
     public static function form(Schema $schema): Schema
     {

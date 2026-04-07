@@ -62,7 +62,7 @@ class PurchaseReturnForm
                             'purchase',
                             'reference_number',
                             fn($q) => $q?->where('tenant_id', Filament::getTenant()?->id)
-                                ?->whereIn('status', [Purchase::STATUS_RECEIVED, Purchase::STATUS_PARTIAL])
+                                    ?->whereIn('status', [Purchase::STATUS_RECEIVED, Purchase::STATUS_PARTIAL])
                         )
                         ->searchable()
                         ->required()
@@ -84,7 +84,7 @@ class PurchaseReturnForm
                         ->relationship(
                             'supplier',
                             'name',
-                            fn($q) => $q->where('tenant_id', Filament::getTenant()?->id)
+                            fn($q) => $q?->where('tenant_id', Filament::getTenant()?->id)
                         )
                         ->searchable()
                         ->nullable()
@@ -95,7 +95,7 @@ class PurchaseReturnForm
                         ->required()
                         ->options([
                             PurchaseReturn::STATUS_APPROVED => 'Disetujui',
-                            PurchaseReturn::STATUS_PENDING  => 'Menunggu',
+                            PurchaseReturn::STATUS_PENDING => 'Menunggu',
                             PurchaseReturn::STATUS_REJECTED => 'Ditolak',
                         ])
                         ->default(PurchaseReturn::STATUS_APPROVED),
@@ -104,8 +104,8 @@ class PurchaseReturnForm
                         ->label('Metode Retur')
                         ->required()
                         ->options([
-                            'debit_note'  => '📋 Debit Note',
-                            'refund'      => '💵 Refund Tunai',
+                            'debit_note' => '📋 Debit Note',
+                            'refund' => '💵 Refund Tunai',
                             'replacement' => '🔄 Penggantian Barang',
                         ])
                         ->default('debit_note'),
@@ -133,7 +133,8 @@ class PurchaseReturnForm
                                 ->label('Item Pembelian')
                                 ->options(function (Get $get): array {
                                     $purchaseId = $get('../../purchase_id');
-                                    if (!$purchaseId) return [];
+                                    if (!$purchaseId)
+                                        return [];
 
                                     return PurchaseItem::with('product')
                                         ->where('purchase_id', $purchaseId)
@@ -148,13 +149,15 @@ class PurchaseReturnForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                    if (!$state) return;
+                                    if (!$state)
+                                        return;
                                     $purchaseItem = PurchaseItem::with('product')->find($state);
-                                    if (!$purchaseItem) return;
+                                    if (!$purchaseItem)
+                                        return;
 
-                                    $set('product_id',  $purchaseItem->product_id);
-                                    $set('cost_price',  $purchaseItem->cost_price);
-                                    $set('subtotal',    $purchaseItem->cost_price * (int) ($get('qty') ?: 1));
+                                    $set('product_id', $purchaseItem->product_id);
+                                    $set('cost_price', $purchaseItem->cost_price);
+                                    $set('subtotal', $purchaseItem->cost_price * (int) ($get('qty') ?: 1));
                                 })
                                 ->columnSpan(4),
 
@@ -169,7 +172,7 @@ class PurchaseReturnForm
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get) {
                                     $cost = (float) ($get('cost_price') ?: 0);
-                                    $qty  = (int)   ($get('qty')        ?: 1);
+                                    $qty = (int) ($get('qty') ?: 1);
                                     $set('subtotal', $cost * $qty);
                                 })
                                 ->columnSpan(2),
@@ -182,7 +185,7 @@ class PurchaseReturnForm
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get) {
                                     $cost = (float) ($get('cost_price') ?: 0);
-                                    $qty  = (int)   ($get('qty')        ?: 1);
+                                    $qty = (int) ($get('qty') ?: 1);
                                     $set('subtotal', $cost * $qty);
                                 })
                                 ->columnSpan(2),
@@ -192,8 +195,8 @@ class PurchaseReturnForm
                                 ->live()
                                 ->content(fn(Get $get): HtmlString => new HtmlString(
                                     '<span class="text-sm font-medium">' .
-                                        self::rp((float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1)) .
-                                        '</span>'
+                                    self::rp((float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1)) .
+                                    '</span>'
                                 ))
                                 ->columnSpan(2),
 
@@ -223,8 +226,8 @@ class PurchaseReturnForm
                         ->live()
                         ->content(fn(Get $get): HtmlString => new HtmlString(
                             '<span class="text-lg font-bold text-primary-600">' .
-                                self::rp(self::calcTotal($get)) .
-                                '</span>'
+                            self::rp(self::calcTotal($get)) .
+                            '</span>'
                         )),
                 ])
                 ->columns(1),

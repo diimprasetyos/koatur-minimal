@@ -37,7 +37,7 @@ class PurchaseReturnResource extends Resource
         return 'Retur Pembelian';
     }
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'reference_number';
 
     public static function form(Schema $schema): Schema
     {
@@ -69,7 +69,6 @@ class PurchaseReturnResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with(['purchase', 'supplier', 'user'])
-            ->withCount('items')
             ->where('tenant_id', Filament::getTenant()?->id);
     }
 }

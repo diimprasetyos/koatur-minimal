@@ -17,4 +17,15 @@ class CreateQuotation extends CreateRecord
 
         return $data;
     }
+
+    protected function afterCreate(): void
+    {
+        $this->record->recalculate();
+    }
+
+    // EditQuotation.php  
+    protected function afterSave(): void
+    {
+        $this->record->recalculate();
+    }
 }

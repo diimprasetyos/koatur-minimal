@@ -55,6 +55,12 @@ class Quotation extends Model
                 $model->code = self::generateCode($model->tenant_id);
             }
         });
+
+        static::saved(function (self $model) {
+            if ($model->wasChanged(['discount_amount', 'tax_amount'])) {
+                $model->recalculate();
+            }
+        });
     }
 
     // ─── Relations ───────────────────────────────────────────────
@@ -177,4 +183,6 @@ class Quotation extends Model
             return $sale;
         });
     }
+
+
 }

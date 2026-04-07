@@ -37,7 +37,7 @@ class SaleReturnResource extends Resource
         return 'Retur Penjualan';
     }
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'reference_number';
 
     public static function form(Schema $schema): Schema
     {

@@ -14,7 +14,7 @@ class EditQuotation extends EditRecord
     {
         return [
             DeleteAction::make()
-                ->hidden(fn() => ! $this->record->isDraft()),
+                ->hidden(fn() => !$this->record->isDraft()),
         ];
     }
 
@@ -23,4 +23,10 @@ class EditQuotation extends EditRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    protected function afterSave(): void
+    {
+        $this->record->recalculate();
+    }
+
 }
