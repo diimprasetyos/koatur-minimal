@@ -18,28 +18,31 @@ class EditSale extends EditRecord
         ];
     }
 
+    protected function beforeSave(): void
+    {
+        // Simpan status lama sebelum data di-save ke DB
+        $this->statusBeforeSave = $this->record->getOriginal('status') ?? $this->record->status;
+    }
+
     protected function afterSave(): void
     {
-        $statusChanged = $this->record->wasChanged('status');
+        $oldStatus = $this->statusBeforeSave;
+        $newStatus = $this->record->status;
 
-        if ($statusChanged) {
-            $oldStatus = $this->record->getOriginal('status');
-            $newStatus = $this->record->status;
+        if ($oldStatus === $newStatus) {
+            return; // Tidak ada perubahan status, skip
+        }
 
-            // Dari pending/draft ke paid → reduce stock
-            if ($newStatus === Sale::STATUS_PAID && $oldStatus !== Sale::STATUS_PAID) {
-                $this->record->reduceStock();
-            }
+        // Dari pending/draft ke paid → reduce stock
+        if ($newStatus === Sale::STATUS_PAID && $oldStatus !== Sale::STATUS_PAID) {
+            $this->record->load('items.product');
+            $this->record->reduceStock();
+        }
 
-            // Ke cancelled → restore stock
-            if ($newStatus === Sale::STATUS_CANCELLED && $oldStatus !== Sale::STATUS_CANCELLED) {
-                $this->record->restoreStock();
-            }
-
-            // Dari cancelled ke paid → reduce stock
-            if ($oldStatus === Sale::STATUS_CANCELLED && $newStatus === Sale::STATUS_PAID) {
-                $this->record->reduceStock();
-            }
+        // Ke cancelled → restore stock
+        if ($newStatus === Sale::STATUS_CANCELLED && $oldStatus !== Sale::STATUS_CANCELLED) {
+            $this->record->load('items.product');
+            $this->record->restoreStock();
         }
     }
 }

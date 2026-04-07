@@ -11,6 +11,8 @@ class EditPurchase extends EditRecord
 {
     protected static string $resource = PurchaseResource::class;
 
+    protected string $statusBeforeSave = '';
+
     protected function getHeaderActions(): array
     {
         return [
@@ -18,11 +20,22 @@ class EditPurchase extends EditRecord
         ];
     }
 
+    protected function beforeSave(): void
+    {
+        $this->statusBeforeSave = $this->record->getOriginal('status') ?? $this->record->status;
+    }
+
     protected function afterSave(): void
     {
-        $statusChanged = $this->record->wasChanged('status');
+        $oldStatus = $this->statusBeforeSave;
+        $newStatus = $this->record->status;
 
-        if ($statusChanged && $this->record->status === Purchase::STATUS_RECEIVED) {
+        if ($oldStatus === $newStatus) {
+            return;
+        }
+
+        if ($newStatus === Purchase::STATUS_RECEIVED) {
+            $this->record->load('items.product');
             $this->record->receiveStock();
         }
     }

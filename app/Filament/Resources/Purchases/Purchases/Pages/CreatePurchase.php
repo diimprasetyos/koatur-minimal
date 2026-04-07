@@ -12,8 +12,8 @@ class CreatePurchase extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // Receive stock setelah purchase dan items tersimpan
         if ($this->record->status === Purchase::STATUS_RECEIVED) {
+            $this->record->load('items.product');
             $this->record->receiveStock();
         }
     }

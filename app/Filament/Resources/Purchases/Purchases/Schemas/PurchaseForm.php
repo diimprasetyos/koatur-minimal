@@ -28,27 +28,27 @@ class PurchaseForm
     protected static function recalculateAll(Set $set, Get $get): void
     {
         // 1. Subtotal row ini
-        $costPrice   = (float) ($get('cost_price') ?: 0);
-        $qty         = (int)   ($get('qty')        ?: 1);
+        $costPrice = (float) ($get('cost_price') ?: 0);
+        $qty = (int) ($get('qty') ?: 1);
         $rowSubtotal = $costPrice * $qty;
         $set('subtotal', $rowSubtotal);
 
         // 2. Header totals dari semua items (nilai lama, update setelah re-render)
-        $items          = $get('../../items') ?? [];
-        $allSubtotal    = collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
+        $items = $get('../../items') ?? [];
+        $allSubtotal = collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
         $discountHeader = (float) ($get('../../discount') ?: 0);
-        $tax            = (float) ($get('../../tax')      ?: 0);
-        $total          = max(0, $allSubtotal - $discountHeader + $tax);
-        $paid           = (float) ($get('../../paid')     ?: 0);
-        $due            = max(0, $total - $paid);
+        $tax = (float) ($get('../../tax') ?: 0);
+        $total = max(0, $allSubtotal - $discountHeader + $tax);
+        $paid = (float) ($get('../../paid') ?: 0);
+        $due = max(0, $total - $paid);
 
         $set('../../subtotal', $allSubtotal);
-        $set('../../total',    $total);
-        $set('../../due',      $due);
+        $set('../../total', $total);
+        $set('../../due', $due);
         $set('../../payment_status', match (true) {
-            $due <= 0  => Purchase::PAYMENT_PAID,
-            $paid > 0  => Purchase::PAYMENT_PARTIAL,
-            default    => Purchase::PAYMENT_UNPAID,
+            $due <= 0 => Purchase::PAYMENT_PAID,
+            $paid > 0 => Purchase::PAYMENT_PARTIAL,
+            default => Purchase::PAYMENT_UNPAID,
         });
     }
 
@@ -57,22 +57,22 @@ class PurchaseForm
      */
     protected static function recalculateTotals(Set $set, Get $get): void
     {
-        $items    = $get('items') ?? [];
+        $items = $get('items') ?? [];
         $subtotal = collect($items)->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
 
         $discount = (float) ($get('discount') ?: 0);
-        $tax      = (float) ($get('tax')      ?: 0);
-        $total    = max(0, $subtotal - $discount + $tax);
-        $paid     = (float) ($get('paid')     ?: 0);
-        $due      = max(0, $total - $paid);
+        $tax = (float) ($get('tax') ?: 0);
+        $total = max(0, $subtotal - $discount + $tax);
+        $paid = (float) ($get('paid') ?: 0);
+        $due = max(0, $total - $paid);
 
         $set('subtotal', $subtotal);
-        $set('total',    $total);
-        $set('due',      $due);
+        $set('total', $total);
+        $set('due', $due);
         $set('payment_status', match (true) {
-            $due <= 0  => Purchase::PAYMENT_PAID,
-            $paid > 0  => Purchase::PAYMENT_PARTIAL,
-            default    => Purchase::PAYMENT_UNPAID,
+            $due <= 0 => Purchase::PAYMENT_PAID,
+            $paid > 0 => Purchase::PAYMENT_PARTIAL,
+            default => Purchase::PAYMENT_UNPAID,
         });
     }
 
@@ -120,7 +120,6 @@ class PurchaseForm
                             ->nullable()
                             ->createOptionForm([
                                 TextInput::make('name')->label('Nama Supplier')->required(),
-                                TextInput::make('company')->label('Nama Perusahaan')->nullable(),
                                 TextInput::make('phone')->label('No. HP')->nullable(),
                                 TextInput::make('email')->label('Email')->email()->nullable(),
                                 Textarea::make('address')->label('Alamat')->rows(2),
@@ -141,10 +140,10 @@ class PurchaseForm
                             ->label('Status')
                             ->required()
                             ->options([
-                                Purchase::STATUS_DRAFT     => 'Draft',
-                                Purchase::STATUS_ORDERED   => 'Dipesan',
-                                Purchase::STATUS_RECEIVED  => 'Diterima',
-                                Purchase::STATUS_PARTIAL   => 'Sebagian Diterima',
+                                Purchase::STATUS_DRAFT => 'Draft',
+                                Purchase::STATUS_ORDERED => 'Dipesan',
+                                Purchase::STATUS_RECEIVED => 'Diterima',
+                                Purchase::STATUS_PARTIAL => 'Sebagian Diterima',
                                 Purchase::STATUS_CANCELLED => 'Dibatalkan',
                             ])
                             ->default(Purchase::STATUS_RECEIVED)
@@ -153,9 +152,9 @@ class PurchaseForm
                         Select::make('payment_method')
                             ->label('Metode Pembayaran')
                             ->options([
-                                'cash'     => '💵 Cash',
+                                'cash' => '💵 Cash',
                                 'transfer' => '🏦 Transfer',
-                                'credit'   => '💳 Kredit',
+                                'credit' => '💳 Kredit',
                             ])
                             ->nullable(),
 
@@ -186,33 +185,35 @@ class PurchaseForm
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                        if (!$state) return;
+                                        if (!$state)
+                                            return;
                                         $product = Product::find($state);
-                                        if (!$product) return;
+                                        if (!$product)
+                                            return;
 
-                                        $set('cost_price',   $product->cost_price ?? 0);
+                                        $set('cost_price', $product->cost_price ?? 0);
                                         $set('qty_received', 0); // reset hanya saat produk diganti
-
-                                        $qty         = (int) ($get('qty') ?: 1);
+                            
+                                        $qty = (int) ($get('qty') ?: 1);
                                         $rowSubtotal = ($product->cost_price ?? 0) * $qty;
                                         $set('subtotal', $rowSubtotal);
 
                                         // Update header
-                                        $items          = $get('../../items') ?? [];
-                                        $allSubtotal    = collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
+                                        $items = $get('../../items') ?? [];
+                                        $allSubtotal = collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
                                         $discountHeader = (float) ($get('../../discount') ?: 0);
-                                        $tax            = (float) ($get('../../tax')      ?: 0);
-                                        $total          = max(0, $allSubtotal - $discountHeader + $tax);
-                                        $paid           = (float) ($get('../../paid')     ?: 0);
-                                        $due            = max(0, $total - $paid);
+                                        $tax = (float) ($get('../../tax') ?: 0);
+                                        $total = max(0, $allSubtotal - $discountHeader + $tax);
+                                        $paid = (float) ($get('../../paid') ?: 0);
+                                        $due = max(0, $total - $paid);
 
                                         $set('../../subtotal', $allSubtotal);
-                                        $set('../../total',    $total);
-                                        $set('../../due',      $due);
+                                        $set('../../total', $total);
+                                        $set('../../due', $due);
                                         $set('../../payment_status', match (true) {
                                             $due <= 0 => Purchase::PAYMENT_PAID,
                                             $paid > 0 => Purchase::PAYMENT_PARTIAL,
-                                            default   => Purchase::PAYMENT_UNPAID,
+                                            default => Purchase::PAYMENT_UNPAID,
                                         });
                                     })
                                     ->columnSpan(4),
@@ -261,7 +262,8 @@ class PurchaseForm
                             ->minItems(1)
                             ->defaultItems(1)
                             ->collapsible()
-                            ->itemLabel(fn(array $state): ?string =>
+                            ->itemLabel(
+                                fn(array $state): ?string =>
                                 Product::find($state['product_id'] ?? null)?->name ?? 'Produk baru'
                             ),
                     ]),
