@@ -69,7 +69,6 @@ class PurchaseResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('tenant_id', Filament::getTenant()?->id)
-            ->with(['supplier', 'user', 'items.product'])
-            ->withCount('items');
+            ->with(['supplier', 'user', 'items.product']);
     }
 }

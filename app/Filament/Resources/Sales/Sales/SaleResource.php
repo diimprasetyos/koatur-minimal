@@ -70,7 +70,6 @@ class SaleResource extends Resource
     {
         return parent::getEloquentQuery()
             ->forCurrentTenant()
-            ->with(['user', 'customer', 'items.product'])
-            ->withCount('items');
+            ->with(['user', 'customer', 'items.product']);
     }
 }
