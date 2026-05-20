@@ -97,7 +97,8 @@ class QuotationForm
                                     $qty = (float) ($get('quantity') ?? 0);
                                     $price = (float) ($state ?? 0);
                                     $set('subtotal', $qty * $price);
-                                }),
+                                })
+                                ->columnSpan(2),
 
                             TextInput::make('quantity')
                                 ->label('Qty')
@@ -110,14 +111,16 @@ class QuotationForm
                                     $qty = (float) ($state ?? 0);
                                     $price = (float) ($get('price') ?? 0);
                                     $set('subtotal', $qty * $price);
-                                }),
+                                })
+                                ->columnSpan(1),
 
                             TextInput::make('subtotal')
                                 ->label('Subtotal')
                                 ->numeric()
                                 ->prefix('Rp')
                                 ->disabled()
-                                ->dehydrated(false),
+                                ->dehydrated(false)
+                                ->columnSpan(2),
                         ])
                         ->columns(5)
                         ->addActionLabel('Tambah Item')
@@ -151,7 +154,8 @@ class QuotationForm
                             $discount = (float) ($get('discount_amount') ?? 0);
                             $tax = (float) ($get('tax_amount') ?? 0);
                             $set('total_amount', round($subtotal - $discount + $tax, 2));
-                        }),
+                        })
+                        ->columnSpan(2),
 
                     TextInput::make('tax_amount')
                         ->label('Pajak')
@@ -167,7 +171,8 @@ class QuotationForm
                             $discount = (float) ($get('discount_amount') ?? 0);
                             $tax = (float) ($get('tax_amount') ?? 0);
                             $set('total_amount', round($subtotal - $discount + $tax, 2));
-                        }),
+                        })
+                        ->columnSpan(2),
 
                     TextInput::make('total_amount')
                         ->label('Total')
