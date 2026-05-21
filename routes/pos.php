@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\PosAuthController;
-use App\Http\Controllers\PosCashierController;
-use App\Http\Controllers\PosController;
+use App\Http\Controllers\Pos\PosAuthController;
+use App\Http\Controllers\Pos\PosCashierController;
+use App\Http\Controllers\Pos\PosController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('pos')->name('pos.')->group(function () {

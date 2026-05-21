@@ -45,7 +45,7 @@ return [
 
         'pos' => [
             'driver' => 'session',
-            'provider' => 'users',
+            'provider' => 'pos_users',
         ],
     ],
 
@@ -72,10 +72,10 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'pos_users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
     ],
 
     /*

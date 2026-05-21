@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Pos;
 
+use App\Http\Controllers\Controller;
 use App\Models\Product\Category;
 use App\Models\Product\Product;
 use App\Models\Sales\Sale;
