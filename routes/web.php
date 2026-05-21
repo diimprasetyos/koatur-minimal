@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ReportExportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,3 +35,20 @@ Route::get('/auth/sso', function (Request $request) {
 Route::get('/reports/export', [ReportExportController::class, 'export'])
     ->name('reports.export')
     ->middleware(['auth', 'signed']);
+
+// Route register publik (bukan Filament)
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register']);
+});
+
+// Route billing (harus login, tidak perlu subscription aktif supaya yang expired bisa bayar)
+Route::middleware('auth')->group(function () {
+    Route::get('/billing', [BillingController::class, 'index'])->name('billing');
+    Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+});
+
+// Webhook Xendit — tidak pakai session/csrf
+Route::post('/webhook/xendit', [BillingController::class, 'xenditWebhook'])
+    ->name('webhook.xendit')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);

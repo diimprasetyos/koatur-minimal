@@ -347,9 +347,9 @@ class PermissionSeeder extends Seeder
         $superAdmin = \App\Models\User::where('email', 'admin@test.com')->first();
         $superAdmin?->syncRoles('super_admin');
 
-        // Assign role owner ke semua user owner.tokoN@example.com
-        \App\Models\User::where('email', 'like', 'owner.toko%@test.com')
-            ->get()
-            ->each(fn($user) => $user->syncRoles('owner'));
+        // Assign role owner
+        \App\Models\User::where('email', 'owner@test.com')
+            ->first()
+            ?->syncRoles('owner');
     }
 }

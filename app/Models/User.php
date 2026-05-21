@@ -4,14 +4,17 @@ namespace App\Models;
 
 use App\Models\Adjustment\StockMovement;
 use App\Models\Sales\Sale;
+use App\Models\Subscription\Subscription;
 use App\Traits\HasUuid;
 use App\Utils\PlanLimit;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
@@ -27,7 +30,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         'name',
         'email',
         'password',
-        'subscription_plan',
+        'subscription_plan', // tetap ada untuk backward compatibility
         'is_active',
     ];
 
@@ -37,9 +40,8 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'is_active'        => 'boolean',
+        'password'         => 'hashed',
     ];
 
     // ─── Filament Panel Access ────────────────────────────────────
@@ -51,15 +53,9 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         }
 
         return match ($panel->getId()) {
-            // Panel superadmin: hanya role super_admin, tidak butuh tenant
             'superadmin' => $this->hasRole('super_admin'),
-
-            // Panel admin (tenant-aware): semua role kecuali super_admin
-            // dan wajib punya tenant
-            'admin' => !$this->hasRole('super_admin')
-            && $this->tenants()->exists(),
-
-            default => false,
+            'admin'      => !$this->hasRole('super_admin') && $this->tenants()->exists(),
+            default      => false,
         };
     }
 
@@ -74,7 +70,6 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     {
         return $this->tenants()->whereKey($tenant)->exists();
     }
-
 
     // ─── Relations ───────────────────────────────────────────────
 
@@ -93,17 +88,74 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return $this->hasMany(StockMovement::class);
     }
 
-    // Tenant yang sedang aktif
-    public function currentTenant()
+    public function currentTenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'current_tenant_id');
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────
+    /**
+     * Relasi ke tabel subscriptions.
+     * User bisa punya banyak subscription (history), tapi yang aktif cukup pakai activeSubscription().
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Subscription yang sedang aktif atau trial.
+     * Pakai: $user->activeSubscription
+     */
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)
+            ->whereIn('status', [Subscription::STATUS_TRIAL, Subscription::STATUS_ACTIVE])
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->latestOfMany();
+    }
+
+    // ─── Subscription Helpers ─────────────────────────────────────
+
+    /**
+     * Apakah user punya subscription yang masih aktif (termasuk trial)?
+     * Ini yang dipakai middleware untuk gate keeping.
+     */
+    public function hasActiveSubscription(): bool
+    {
+        return $this->activeSubscription()->exists();
+    }
+
+    /**
+     * Apakah user sedang dalam masa trial?
+     */
+    public function isOnTrial(): bool
+    {
+        return $this->activeSubscription?->isTrial() ?? false;
+    }
+
+    /**
+     * Berapa hari tersisa di subscription aktif?
+     */
+    public function subscriptionDaysRemaining(): ?int
+    {
+        return $this->activeSubscription?->daysRemaining();
+    }
+
+    /**
+     * Ambil slug plan yang aktif. Fallback ke 'basic'.
+     * Masih kompatibel dengan PlanLimit yang lama.
+     */
     public function getSubscriptionPlan(): string
     {
-        return $this->subscription_plan ?? 'basic';
+        return $this->activeSubscription?->plan?->slug
+            ?? $this->subscription_plan
+            ?? 'basic';
     }
+
+    // ─── Role Helpers ─────────────────────────────────────────────
 
     public function canCreateTenant(): bool
     {
@@ -117,7 +169,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
 
     public function isProPlan(): bool
     {
-        return $this->subscription_plan === 'pro';
+        return $this->getSubscriptionPlan() === 'pro';
     }
 
     public function isSuperAdmin(): bool

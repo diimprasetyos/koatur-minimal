@@ -29,12 +29,12 @@
                 <a href="{{ route('filament.admin.auth.login') }}"
                     class="px-6 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-gray-50 transition flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     Login
                 </a>
-                <a href="#"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                <a href="/register" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
                     Sign up
                 </a>
             </div>
@@ -43,8 +43,7 @@
             <button id="mobile-menu-btn" class="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100 transition"
                 aria-label="Toggle menu" aria-expanded="false">
                 <svg id="icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 6h16M4 12h16M4 18h16" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
                 <svg id="icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -53,8 +52,7 @@
         </div>
 
         {{-- Mobile Menu --}}
-        <div id="mobile-menu"
-            class="md:hidden hidden border-t border-gray-100 bg-white px-4 pb-4 space-y-1 shadow-md">
+        <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 bg-white px-4 pb-4 space-y-1 shadow-md">
             <a href="{{ url('/') }}"
                 class="block py-3 px-2 text-gray-900 font-medium hover:text-blue-600 hover:bg-gray-50 rounded-md transition">
                 Home
@@ -73,12 +71,13 @@
                     <a href="{{ route('filament.admin.auth.login') }}"
                         class="flex items-center gap-2 w-full py-2.5 px-4 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition font-medium text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         Login
                     </a>
                 </div>
-                <a href="#"
+                <a href="/register"
                     class="w-full text-center py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium">
                     Sign up
                 </a>
@@ -132,14 +131,16 @@
 
                 <div class="flex flex-col items-center text-center gap-3 p-5 md:p-6 bg-white rounded-xl shadow-sm">
                     <div class="bg-blue-600 text-white p-3 rounded-xl flex items-center justify-center">
-                        <img src="{{ asset('icon/rectangle-stack.svg') }}" alt="Stok" class="w-10 h-10 md:w-12 md:h-12">
+                        <img src="{{ asset('icon/rectangle-stack.svg') }}" alt="Stok"
+                            class="w-10 h-10 md:w-12 md:h-12">
                     </div>
                     <h2 class="text-sm md:text-base font-semibold text-gray-900">Atur Stok</h2>
                 </div>
 
                 <div class="flex flex-col items-center text-center gap-3 p-5 md:p-6 bg-white rounded-xl shadow-sm">
                     <div class="bg-blue-600 text-white p-3 rounded-xl flex items-center justify-center">
-                        <img src="{{ asset('icon/newspaper.svg') }}" alt="Laporan" class="w-10 h-10 md:w-12 md:h-12">
+                        <img src="{{ asset('icon/newspaper.svg') }}" alt="Laporan"
+                            class="w-10 h-10 md:w-12 md:h-12">
                     </div>
                     <h2 class="text-sm md:text-base font-semibold text-gray-900">Laporan Jelas</h2>
                 </div>
@@ -169,35 +170,40 @@
                 @php
                     $slides = [
                         [
-                            'img'   => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=400&fit=crop',
-                            'alt'   => 'Laporan Penjualan Dashboard',
+                            'img' => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=400&fit=crop',
+                            'alt' => 'Laporan Penjualan Dashboard',
                             'title' => 'Laporan Penjualan',
-                            'desc'  => 'Analitik lengkap dan real-time untuk setiap transaksi',
+                            'desc' => 'Analitik lengkap dan real-time untuk setiap transaksi',
                         ],
                         [
-                            'img'   => 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=400&fit=crop',
-                            'alt'   => 'Manajemen Stok',
+                            'img' =>
+                                'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=400&fit=crop',
+                            'alt' => 'Manajemen Stok',
                             'title' => 'Manajemen Stok',
-                            'desc'  => 'Kelola inventori dengan mudah dan pantau stok secara real-time',
+                            'desc' => 'Kelola inventori dengan mudah dan pantau stok secara real-time',
                         ],
                         [
-                            'img'   => 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
-                            'alt'   => 'Sistem Kasir',
+                            'img' =>
+                                'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
+                            'alt' => 'Sistem Kasir',
                             'title' => 'Sistem Kasir Cepat',
-                            'desc'  => 'Interface kasir intuitif untuk transaksi yang lebih cepat dan akurat',
+                            'desc' => 'Interface kasir intuitif untuk transaksi yang lebih cepat dan akurat',
                         ],
                         [
-                            'img'   => 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&h=400&fit=crop',
-                            'alt'   => 'Multi Device Support',
+                            'img' =>
+                                'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&h=400&fit=crop',
+                            'alt' => 'Multi Device Support',
                             'title' => 'Multi Device Support',
-                            'desc'  => 'Akses dari mobile, tablet, atau desktop dengan sinkronisasi otomatis',
+                            'desc' => 'Akses dari mobile, tablet, atau desktop dengan sinkronisasi otomatis',
                         ],
                     ];
                 @endphp
 
                 @foreach ($slides as $index => $slide)
-                    <div class="carousel-slide {{ $index === 0 ? 'active' : '' }} absolute w-full h-full transition-opacity duration-500 ease-in-out">
-                        <img src="{{ $slide['img'] }}" alt="{{ $slide['alt'] }}" class="w-full h-full object-cover">
+                    <div
+                        class="carousel-slide {{ $index === 0 ? 'active' : '' }} absolute w-full h-full transition-opacity duration-500 ease-in-out">
+                        <img src="{{ $slide['img'] }}" alt="{{ $slide['alt'] }}"
+                            class="w-full h-full object-cover">
                         <div
                             class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 md:p-6">
                             <h3 class="text-white text-lg md:text-xl font-bold">{{ $slide['title'] }}</h3>
@@ -235,39 +241,14 @@
     </section>
 
     {{-- ======================== PRICING ======================== --}}
-    <section id="layanan" class="bg-slate-50 py-12 md:py-24">
+    <section id="layanan" class="bg-slate-50 py-12 md:py-24 items-center justify-center">
         <div class="max-w-7xl mx-auto px-4 md:px-8">
             <div class="text-center mb-12 md:mb-16">
                 <h2 class="text-3xl md:text-4xl font-bold mb-4">Layanan Kami</h2>
                 <p class="text-gray-600 text-lg">Pilih paket yang sesuai kebutuhan bisnis Anda</p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 items-stretch">
-
-                {{-- Basic Plan --}}
-                <div
-                    class="p-6 md:p-8 bg-white rounded-2xl shadow-md border flex flex-col justify-between hover:shadow-xl transition">
-                    <div>
-                        <h3 class="text-xl font-bold">Basic Plan</h3>
-                        <p class="text-sm text-gray-600 mt-1 mb-6">Untuk toko kecil yang baru mulai</p>
-                        <div class="mb-8">
-                            <span class="text-4xl font-bold text-blue-600">Rp 79.000</span>
-                            <span class="text-gray-600">/ Bulan</span>
-                        </div>
-                        <ul class="space-y-3 text-sm text-gray-700">
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> 1 Outlet</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Maks 2 Perangkat</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Modul Kasir Lengkap</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Manajemen Stok & Harga</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Laporan Harian</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Support Print Struk</li>
-                        </ul>
-                    </div>
-                    <a href="#"
-                        class="mt-8 w-full block text-center py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium">
-                        Mulai dengan Basic Plan
-                    </a>
-                </div>
+            <div class="flex justify-center items-center">
 
                 {{-- Advance Plan (Recommended) --}}
                 <div
@@ -277,49 +258,28 @@
                             class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-4 inline-block">
                             RECOMMENDED
                         </span>
-                        <h3 class="text-xl font-bold">Advance Plan</h3>
-                        <p class="text-sm text-gray-600 mt-1 mb-6">Untuk toko dengan banyak transaksi</p>
+                        <h3 class="text-xl font-bold">Basic Plan</h3>
+                        <p class="text-sm text-gray-600 mt-1 mb-6">Untuk cafe, toko UMKM</p>
                         <div class="mb-8">
-                            <span class="text-4xl font-bold text-blue-600">Rp 204.000</span>
+                            <span class="text-4xl font-bold text-blue-600">Rp 100.000</span>
                             <span class="text-gray-600">/ Bulan</span>
                         </div>
                         <ul class="space-y-3 text-sm text-gray-700">
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> 5 Outlet</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Maks 15 Perangkat</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Modul Kasir Lengkap</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Manajemen Stok & Harga</li>
+                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> 1 Outlet</li>
+                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Maks 3 login
+                            </li>
+                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Modul Kasir Lengkap
+                            </li>
+                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Manajemen Stok &
+                                Harga</li>
                             <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Laporan Harian</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Support Print Struk & Barcode</li>
+                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Support Print Struk
+                                & Barcode</li>
                         </ul>
                     </div>
-                    <a href="#"
+                    <a href="/register"
                         class="mt-8 w-full block text-center py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium">
-                        Mulai dengan Advance Plan
-                    </a>
-                </div>
-
-                {{-- Pro Plan --}}
-                <div
-                    class="p-6 md:p-8 bg-white rounded-2xl shadow-md border flex flex-col justify-between hover:shadow-xl transition sm:col-span-2 lg:col-span-1">
-                    <div>
-                        <h3 class="text-xl font-bold">Pro Plan</h3>
-                        <p class="text-sm text-gray-600 mt-1 mb-6">Untuk enterprise dan multi-outlet</p>
-                        <div class="mb-8">
-                            <span class="text-4xl font-bold text-blue-600">Rp 899.000</span>
-                            <span class="text-gray-600">/ Bulan</span>
-                        </div>
-                        <ul class="space-y-3 text-sm text-gray-700">
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Unlimited Outlet</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Unlimited Perangkat</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Modul Kasir Lengkap</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Multi-user (Kasir & Admin)</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Laporan Profit & Analisa Produk</li>
-                            <li class="flex gap-2"><span class="text-blue-600 font-bold">✓</span> Support Print Struk & Barcode</li>
-                        </ul>
-                    </div>
-                    <a href="#"
-                        class="mt-8 w-full block text-center py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium">
-                        Mulai dengan Pro Plan
+                        Mulai dengan Basic Plan
                     </a>
                 </div>
 
@@ -346,7 +306,10 @@
                 <div>
                     <h4 class="font-bold mb-4">Hubungi Kami</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/cdn-cgi/l/email-protection#a0d3d5d0d0cfd2d4e0c5d8c1cdd0ccc58ec3cfcd" class="hover:opacity-80 transition"><span class="__cf_email__" data-cfemail="f2818782829d8086b2978a939f829e97dc919d9f">[email&#160;protected]</span></a></li>
+                        <li><a href="/cdn-cgi/l/email-protection#a0d3d5d0d0cfd2d4e0c5d8c1cdd0ccc58ec3cfcd"
+                                class="hover:opacity-80 transition"><span class="__cf_email__"
+                                    data-cfemail="f2818782829d8086b2978a939f829e97dc919d9f">[email&#160;protected]</span></a>
+                        </li>
                         <li><a href="tel:+1234567890" class="hover:opacity-80 transition">+123.XXXX.XXXX</a></li>
                     </ul>
                 </div>
@@ -364,74 +327,74 @@
         </div>
     </footer>
 
- <script>
-    // ---- Carousel ----
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('.carousel-slide');
-    const dots = document.querySelectorAll('.carousel-dot');
-    let autoplayInterval;
+    <script>
+        // ---- Carousel ----
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.carousel-slide');
+        const dots = document.querySelectorAll('.carousel-dot');
+        let autoplayInterval;
 
-    function showSlide(index) {
-        slides.forEach(s => {
-            s.classList.remove('active');
-            s.style.opacity = '0';
-            s.style.zIndex = '0';
-        });
-        dots.forEach(d => d.classList.remove('active', 'bg-blue-600'));
+        function showSlide(index) {
+            slides.forEach(s => {
+                s.classList.remove('active');
+                s.style.opacity = '0';
+                s.style.zIndex = '0';
+            });
+            dots.forEach(d => d.classList.remove('active', 'bg-blue-600'));
 
-        slides[index].classList.add('active');
-        slides[index].style.opacity = '1';
-        slides[index].style.zIndex = '10';
-        dots[index].classList.add('active', 'bg-blue-600');
-        currentSlide = index;
-    }
+            slides[index].classList.add('active');
+            slides[index].style.opacity = '1';
+            slides[index].style.zIndex = '10';
+            dots[index].classList.add('active', 'bg-blue-600');
+            currentSlide = index;
+        }
 
-    function changeSlide(direction) {
-        let next = (currentSlide + direction + slides.length) % slides.length;
-        showSlide(next);
-        resetAutoplay();
-    }
+        function changeSlide(direction) {
+            let next = (currentSlide + direction + slides.length) % slides.length;
+            showSlide(next);
+            resetAutoplay();
+        }
 
-    function goToSlide(index) {
-        showSlide(index);
-        resetAutoplay();
-    }
+        function goToSlide(index) {
+            showSlide(index);
+            resetAutoplay();
+        }
 
-    function startAutoplay() {
-        autoplayInterval = setInterval(() => changeSlide(1), 4000);
-    }
+        function startAutoplay() {
+            autoplayInterval = setInterval(() => changeSlide(1), 4000);
+        }
 
-    function resetAutoplay() {
-        clearInterval(autoplayInterval);
+        function resetAutoplay() {
+            clearInterval(autoplayInterval);
+            startAutoplay();
+        }
+
+        showSlide(0);
         startAutoplay();
-    }
 
-    showSlide(0);
-    startAutoplay();
+        // ---- Mobile Menu ----
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+        const iconOpen = document.getElementById('icon-open');
+        const iconClose = document.getElementById('icon-close');
 
-    // ---- Mobile Menu ----
-    const btn = document.getElementById('mobile-menu-btn');
-    const menu = document.getElementById('mobile-menu');
-    const iconOpen = document.getElementById('icon-open');
-    const iconClose = document.getElementById('icon-close');
-
-    btn.addEventListener('click', () => {
-        const isOpen = !menu.classList.contains('hidden');
-        menu.classList.toggle('hidden', isOpen);
-        iconOpen.classList.toggle('hidden', !isOpen);
-        iconClose.classList.toggle('hidden', isOpen);
-        btn.setAttribute('aria-expanded', String(!isOpen));
-    });
-
-    menu.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            menu.classList.add('hidden');
-            iconOpen.classList.remove('hidden');
-            iconClose.classList.add('hidden');
-            btn.setAttribute('aria-expanded', 'false');
+        btn.addEventListener('click', () => {
+            const isOpen = !menu.classList.contains('hidden');
+            menu.classList.toggle('hidden', isOpen);
+            iconOpen.classList.toggle('hidden', !isOpen);
+            iconClose.classList.toggle('hidden', isOpen);
+            btn.setAttribute('aria-expanded', String(!isOpen));
         });
-    });
-</script>
+
+        menu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                menu.classList.add('hidden');
+                iconOpen.classList.remove('hidden');
+                iconClose.classList.add('hidden');
+                btn.setAttribute('aria-expanded', 'false');
+            });
+        });
+    </script>
 
 </body>
 

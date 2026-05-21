@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Auth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 
@@ -49,7 +49,7 @@ class PosAuthController extends Controller
         return redirect()->route('pos.select-tenant');
     }
 
-    // ─── Pilih Tenant (hanya muncul jika user punya > 1 tenant) ──────────
+    // Pilih Tenant (hanya muncul jika user punya > 1 tenant)
 
     public function showSelectTenant(): View|RedirectResponse
     {
@@ -92,7 +92,7 @@ class PosAuthController extends Controller
         return redirect()->route('pos.index');
     }
 
-    // ─── Switch Tenant (dari dalam kasir, tanpa logout) ───────────────────
+    // Switch Tenant (dari dalam kasir, tanpa logout)
 
     public function switchTenant(Request $request): RedirectResponse
     {
@@ -113,8 +113,6 @@ class PosAuthController extends Controller
         return redirect()->route('pos.index')
             ->with('success', 'Berhasil pindah ke toko ' . $tenant->name);
     }
-
-    // ─── Logout ───────────────────────────────────────────────────────────
 
     public function logout(Request $request): RedirectResponse
     {

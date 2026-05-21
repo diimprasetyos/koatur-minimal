@@ -39,12 +39,12 @@ class Category extends Model
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(
-            Tenant::class,  // model Tenant
-            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
-            'id',                       // FK ke model ini di "pivot"
-            'tenant_id',                // FK ke tenant di "pivot"
-            'id',                       // PK model ini
-            'id',                       // PK tenant
+            Tenant::class,
+            $this->getTable(),
+            'id',
+            'tenant_id',
+            'id',
+            'id',
         );
     }
 }

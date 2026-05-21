@@ -33,17 +33,15 @@ class Tenant extends Model
 
     protected static function boot(): void
     {
-        parent::boot(); // wajib dipanggil
+        parent::boot();
 
         static::creating(function (self $model) {
-            // Generate slug dari name jika belum diisi.
             if (empty($model->slug)) {
                 $model->slug = Str::slug($model->name);
             }
         });
 
         static::updating(function (self $model) {
-            // Jika name berubah dan slug masih kosong/null, regenerate.
             if ($model->isDirty('name') && empty($model->slug)) {
                 $model->slug = Str::slug($model->name);
             }
@@ -51,9 +49,30 @@ class Tenant extends Model
     }
 
     // ─── Relations ───────────────────────────────────────────────
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class);
+    }
+
+    /**
+     * Ambil owner (role 'owner') dari tenant ini.
+     * Berguna untuk cek subscription owner ketika middleware jalan.
+     */
+    public function owner()
+    {
+        return $this->users()
+            ->role('owner')
+            ->first();
+    }
+
+    /**
+     * Cek apakah tenant punya subscription aktif.
+     */
+    public function hasActiveSubscription(): bool
+    {
+        $owner = $this->owner();
+        return $owner?->hasActiveSubscription() ?? false;
     }
 
     public function categories(): HasMany
