@@ -15,10 +15,24 @@ use Illuminate\View\View;
 
 class PosCashierController extends Controller
 {
+    /**
+     * Ambil tenant dari request (di-inject oleh PosAuthenticate middleware).
+     * Throw exception yang jelas jika middleware tidak berjalan dengan benar.
+     */
     private function getTenant(Request $request): Tenant
     {
-        return $request->_pos_tenant;
+        $tenant = $request->_pos_tenant ?? null;
+
+        if (!$tenant instanceof Tenant) {
+            // Ini tidak boleh terjadi jika middleware 'pos.auth' aktif.
+            // Kalau sampai sini, berarti route tidak dilindungi middleware dengan benar.
+            abort(500, 'Tenant tidak ditemukan di request. Pastikan middleware pos.auth aktif di route ini.');
+        }
+
+        return $tenant;
     }
+
+    // ── Halaman Utama Kasir ──────────────────────────────────────────────────
 
     public function index(Request $request): View
     {
@@ -40,7 +54,7 @@ class PosCashierController extends Controller
         return view('pos.index', compact('categories', 'tenant', 'userTenants'));
     }
 
-    // API: Produk
+    // ── API: Produk ──────────────────────────────────────────────────────────
 
     public function products(Request $request): JsonResponse
     {
@@ -55,70 +69,71 @@ class PosCashierController extends Controller
             ->get(['id', 'uuid', 'name', 'price', 'stock', 'track_stock', 'image', 'category_id']);
 
         return response()->json($products->map(fn($p) => [
-            'id' => $p->id,
-            'name' => $p->name,
-            'price' => (float) $p->price,
-            'stock' => $p->track_stock ? $p->stock : null,
-            'in_stock' => $p->isInStock(),
-            'image' => $p->image ? asset('storage/' . $p->image) : null,
+            'id'          => $p->id,
+            'name'        => $p->name,
+            'price'       => (float) $p->price,
+            'stock'       => $p->track_stock ? $p->stock : null,
+            'in_stock'    => $p->isInStock(),
+            'image'       => $p->image ? asset('storage/' . $p->image) : null,
             'category_id' => $p->category_id,
         ]));
     }
 
-    // API: Buat Sale
+    // ── API: Buat Sale (draft) ───────────────────────────────────────────────
 
     public function createSale(Request $request): JsonResponse
     {
         $request->validate([
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer'],
-            'items.*.qty' => ['required', 'integer', 'min:1'],
-            'items.*.discount' => ['sometimes', 'numeric', 'min:0'],
-            'customer_id' => ['nullable', 'integer'],
-            'notes' => ['nullable', 'string', 'max:500'],
+            'items'               => ['required', 'array', 'min:1'],
+            'items.*.product_id'  => ['required', 'integer'],
+            'items.*.qty'         => ['required', 'integer', 'min:1'],
+            'items.*.discount'    => ['sometimes', 'numeric', 'min:0'],
+            'customer_id'         => ['nullable', 'integer'],
+            'notes'               => ['nullable', 'string', 'max:500'],
         ]);
 
         $tenant = $this->getTenant($request);
-        $user = Auth::guard('pos')->user();
+        $user   = Auth::guard('pos')->user();
 
-        // Pastikan semua product_id milik tenant yang aktif
-        $productIds = collect($request->items)->pluck('product_id');
-        $validProducts = Product::where('tenant_id', $tenant->id)
+        // Pastikan semua product_id milik tenant aktif — cegah cross-tenant injection
+        $productIds    = collect($request->items)->pluck('product_id');
+        $validProducts = Product::query()
+            ->where('tenant_id', $tenant->id)
             ->whereIn('id', $productIds)
             ->where('is_active', true)
             ->get()
             ->keyBy('id');
 
         if ($validProducts->count() !== $productIds->unique()->count()) {
-            return response()->json(['message' => 'Terdapat produk tidak valid.'], 422);
+            return response()->json(['message' => 'Terdapat produk tidak valid atau tidak aktif.'], 422);
         }
 
         $sale = DB::transaction(function () use ($request, $tenant, $user, $validProducts) {
             $sale = Sale::create([
-                'tenant_id' => $tenant->id,
-                'user_id' => $user->id,
+                'tenant_id'   => $tenant->id,
+                'user_id'     => $user->id,
                 'customer_id' => $request->customer_id,
-                'status' => Sale::STATUS_PENDING,
-                'notes' => $request->notes,
-                'subtotal' => 0,
-                'discount' => 0,
-                'tax' => 0,
-                'total' => 0,
-                'paid' => 0,
-                'change' => 0,
+                'status'      => Sale::STATUS_PENDING,
+                'notes'       => $request->notes,
+                'subtotal'    => 0,
+                'discount'    => 0,
+                'tax'         => 0,
+                'total'       => 0,
+                'paid'        => 0,
+                'change'      => 0,
             ]);
 
             foreach ($request->items as $item) {
                 $product = $validProducts[$item['product_id']];
 
                 SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $product->id,
+                    'sale_id'      => $sale->id,
+                    'product_id'   => $product->id,
                     'product_name' => $product->name,
-                    'price' => $product->price,
-                    'cost_price' => $product->cost_price ?? 0,
-                    'qty' => $item['qty'],
-                    'discount' => $item['discount'] ?? 0,
+                    'price'        => $product->price,
+                    'cost_price'   => $product->cost_price ?? 0,
+                    'qty'          => $item['qty'],
+                    'discount'     => $item['discount'] ?? 0,
                 ]);
             }
 
@@ -126,52 +141,53 @@ class PosCashierController extends Controller
         });
 
         return response()->json([
-            'sale_id' => $sale->id,
+            'sale_id'        => $sale->id,
             'invoice_number' => $sale->invoice_number,
-            'subtotal' => (float) $sale->subtotal,
-            'total' => (float) $sale->total,
+            'subtotal'       => (float) $sale->subtotal,
+            'total'          => (float) $sale->total,
         ]);
     }
 
-    // API: Proses Bayar
+    // ── API: Proses Bayar ────────────────────────────────────────────────────
 
     public function processSale(Request $request, Sale $sale): JsonResponse
     {
-        // Pastikan sale milik tenant aktif
+        // Pastikan sale milik tenant yang sedang aktif
         if ($sale->tenant_id !== $this->getTenant($request)->id) {
             return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
         }
 
         $request->validate([
             'payment_method' => ['required', 'in:cash,transfer,ewallet'],
-            'paid' => ['required', 'numeric', 'min:0'],
+            'paid'           => ['required', 'numeric', 'min:0'],
         ]);
 
-        if ($request->paid < $sale->total) {
+        if ((float) $request->paid < (float) $sale->total) {
             return response()->json(['message' => 'Pembayaran kurang dari total.'], 422);
         }
 
         DB::transaction(function () use ($request, $sale) {
             $sale->update([
                 'payment_method' => $request->payment_method,
-                'paid' => $request->paid,
-                'status' => Sale::STATUS_PAID,
+                'paid'           => $request->paid,
+                'status'         => Sale::STATUS_PAID,
             ]);
+
             $sale->recalculate();
             $sale->load('items.product');
             $sale->reduceStock();
         });
 
         return response()->json([
-            'message' => 'Pembayaran berhasil.',
+            'message'        => 'Pembayaran berhasil.',
             'invoice_number' => $sale->invoice_number,
-            'total' => (float) $sale->total,
-            'paid' => (float) $sale->paid,
-            'change' => (float) $sale->change,
+            'total'          => (float) $sale->total,
+            'paid'           => (float) $sale->paid,
+            'change'         => (float) $sale->change,
         ]);
     }
 
-    // API: Struk
+    // ── API: Struk ───────────────────────────────────────────────────────────
 
     public function receipt(Request $request, Sale $sale): JsonResponse
     {
@@ -183,19 +199,22 @@ class PosCashierController extends Controller
 
         return response()->json([
             'invoice_number' => $sale->invoice_number,
-            'sale_date' => $sale->created_at->format('d/m/Y H:i'),
-            'cashier' => Auth::guard('pos')->user()?->name,
-            'customer' => $sale->customer?->name ?? 'Umum',
-            'items' => $sale->items->map(fn($i) => [
-                'name' => $i->product_name,
-                'qty' => $i->qty,
-                'price' => (float) $i->price,
+            'sale_date'      => $sale->created_at->format('d/m/Y H:i'),
+            'cashier'        => Auth::guard('pos')->user()?->name,
+            'customer'       => $sale->customer?->name ?? 'Umum',
+            'items'          => $sale->items->map(fn($i) => [
+                'name'     => $i->product_name,
+                'qty'      => $i->qty,
+                'price'    => (float) $i->price,
+                'discount' => (float) $i->discount,
                 'subtotal' => (float) $i->subtotal,
             ]),
-            'subtotal' => (float) $sale->subtotal,
-            'total' => (float) $sale->total,
-            'paid' => (float) $sale->paid,
-            'change' => (float) $sale->change,
+            'subtotal'       => (float) $sale->subtotal,
+            'discount'       => (float) $sale->discount,
+            'tax'            => (float) $sale->tax,
+            'total'          => (float) $sale->total,
+            'paid'           => (float) $sale->paid,
+            'change'         => (float) $sale->change,
             'payment_method' => $sale->payment_method,
         ]);
     }
