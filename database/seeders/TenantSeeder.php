@@ -13,7 +13,7 @@ class TenantSeeder extends Seeder
         $now = now();
 
         $tenants = [
-            ['uuid' => Str::uuid(), 'name' => 'Toko Elektronik', 'slug' => 'toko-elektronik', 'phone' => '031-5551001', 'address' => 'Jl. Rungkut No. 1, Surabaya', 'logo' => null, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['uuid' => Str::uuid(), 'name' => 'Toko Elektronik', 'slug' => 'toko-1', 'phone' => '031-5551001', 'address' => 'Jl. Rungkut No. 1, Surabaya', 'logo' => null, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now],
         ];
 
         DB::table('tenants')->insert($tenants);
