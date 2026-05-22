@@ -11,7 +11,7 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $tenant = DB::table('tenants')->where('slug', 'toko-elektronik')->first();
+        $tenant = DB::table('tenants')->where('slug', 'toko-1')->first();
 
         $now = now();
 
