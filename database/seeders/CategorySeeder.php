@@ -11,7 +11,7 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $now = now();
-        $t = DB::table('tenants')->where('slug', 'toko-1')->first();
+        $t   = DB::table('tenants')->where('slug', 'toko-1')->first();
 
         $categories = [];
         foreach ($this->data() as [$name, $color]) {
@@ -32,11 +32,11 @@ class CategorySeeder extends Seeder
     private function data(): array
     {
         return [
-            ['Makanan & Minuman',   '#f59e0b'],
-            ['Elektronik',          '#3b82f6'],
-            ['Pakaian',             '#ec4899'],
-            ['Perlengkapan Rumah',  '#10b981'],
-            ['Alat Tulis',          '#8b5cf6'],
+            ['Smartphone & Tablet', '#3b82f6'],
+            ['Laptop & Komputer',   '#6366f1'],
+            ['Aksesoris HP',        '#f59e0b'],
+            ['Audio & Speaker',     '#10b981'],
+            ['Kabel & Charger',     '#ec4899'],
         ];
     }
 }

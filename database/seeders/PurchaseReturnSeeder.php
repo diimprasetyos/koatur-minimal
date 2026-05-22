@@ -22,9 +22,9 @@ class PurchaseReturnSeeder extends Seeder
         $sup    = fn(string $code) => DB::table('suppliers')
             ->where('tenant_id', $t->id)->where('code', $code)->first();
 
-        // ── Return 1 — 1 charger rusak ke CV Elektro Jaya ──
+        // ── Return 1 — 1 laptop ASUS rusak ke Distributor ASUS & Lenovo ──
         $p  = $po('PO-T1-20260308-001');
-        $pi = $poItem($p->id, 'CHG-065');
+        $pi = $poItem($p->id, 'ASS-VB14');
 
         $pr1 = DB::table('purchase_returns')->insertGetId([
             'uuid'             => Str::uuid(),
@@ -34,28 +34,28 @@ class PurchaseReturnSeeder extends Seeder
             'supplier_id'      => $sup('SUP-002')->id,
             'reference_number' => 'PR-T1-20260309-001',
             'return_date'      => '2026-03-09',
-            'total_return'     => 95000,
+            'total_return'     => 8500000,
             'status'           => 'approved',
             'return_method'    => 'debit_note',
-            'reason'           => 'Charger diterima dalam kondisi rusak / tidak menyala',
+            'reason'           => 'Laptop diterima dalam kondisi mati total, tidak bisa dinyalakan',
             'notes'            => 'Debit note untuk pengurang tagihan',
             'created_at'       => $now,
             'updated_at'       => $now,
         ]);
         DB::table('purchase_return_items')->insert([[
             'purchase_return_id' => $pr1,
-            'product_id'         => DB::table('products')->where('sku', 'CHG-065')->value('id'),
+            'product_id'         => DB::table('products')->where('sku', 'ASS-VB14')->value('id'),
             'purchase_item_id'   => $pi->id,
             'qty'                => 1,
-            'cost_price'         => 95000,
-            'subtotal'           => 95000,
-            'reason'             => 'Unit rusak, tidak berfungsi',
+            'cost_price'         => 8500000,
+            'subtotal'           => 8500000,
+            'reason'             => 'Unit DOA (Dead on Arrival), tidak berfungsi sama sekali',
         ]]);
-        $this->removeStock('CHG-065', 1, 'purchase_return', $pr1, $t->id, $u->id, $now);
+        $this->removeStock('ASS-VB14', 1, 'purchase_return', $pr1, $t->id, $u->id, $now);
 
-        // ── Return 2 — 5 kaos cacat ke Distro Pakaian ──
+        // ── Return 2 — 3 TWS earphone cacat ke Distributor aksesoris & audio ──
         $p  = $po('PO-T1-20260312-001');
-        $pi = $poItem($p->id, 'KPS-W-L');
+        $pi = $poItem($p->id, 'TWS-ANK');
 
         $pr2 = DB::table('purchase_returns')->insertGetId([
             'uuid'             => Str::uuid(),
@@ -65,24 +65,24 @@ class PurchaseReturnSeeder extends Seeder
             'supplier_id'      => $sup('SUP-003')->id,
             'reference_number' => 'PR-T1-20260314-001',
             'return_date'      => '2026-03-14',
-            'total_return'     => 200000,
+            'total_return'     => 630000,
             'status'           => 'approved',
             'return_method'    => 'replacement',
-            'reason'           => 'Sablon kaos buram dan jahitan tidak rapi',
+            'reason'           => 'TWS earphone tidak dapat terhubung via Bluetooth dan suara sebelah kiri mati',
             'notes'            => 'Supplier setuju kirim pengganti',
             'created_at'       => $now,
             'updated_at'       => $now,
         ]);
         DB::table('purchase_return_items')->insert([[
             'purchase_return_id' => $pr2,
-            'product_id'         => DB::table('products')->where('sku', 'KPS-W-L')->value('id'),
+            'product_id'         => DB::table('products')->where('sku', 'TWS-ANK')->value('id'),
             'purchase_item_id'   => $pi->id,
-            'qty'                => 5,
-            'cost_price'         => 40000,
-            'subtotal'           => 200000,
-            'reason'             => 'Kualitas sablon & jahitan tidak sesuai',
+            'qty'                => 3,
+            'cost_price'         => 210000,
+            'subtotal'           => 630000,
+            'reason'             => 'Unit cacat produksi, Bluetooth tidak stabil dan channel kiri tidak berfungsi',
         ]]);
-        $this->removeStock('KPS-W-L', 5, 'purchase_return', $pr2, $t->id, $u->id, $now);
+        $this->removeStock('TWS-ANK', 3, 'purchase_return', $pr2, $t->id, $u->id, $now);
     }
 
     private function removeStock(string $sku, int $qty, string $refType, int $refId, int $tenantId, int $userId, $now): void

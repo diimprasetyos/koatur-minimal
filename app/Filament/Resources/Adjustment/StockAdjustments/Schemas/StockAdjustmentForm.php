@@ -20,19 +20,51 @@ use Illuminate\Support\HtmlString;
 
 class StockAdjustmentForm
 {
+    // Ambil tenant_id yang sedang aktif
+    protected static function currentTenantId(): ?int
+    {
+        return Filament::getTenant()?->id;
+    }
+
+    // Ambil produk hanya milik tenant aktif — cegah manipulasi ID dari luar
+    protected static function getProductForCurrentTenant(?string $productId): ?Product
+    {
+        if (!$productId) return null;
+
+        return Product::where('id', $productId)
+            ->where('tenant_id', self::currentTenantId())
+            ->first();
+    }
+
+    // Format angka tanpa desimal
     protected static function rp(int $n): string
     {
         return number_format($n, 0, ',', '.');
     }
 
+    // Hitung dan render badge selisih stok (+/- /tidak berubah)
+    protected static function diffBadge(int $before, int $after): HtmlString
+    {
+        $diff = $after - $before;
+
+        $label = match (true) {
+            $diff > 0 => '<span class="text-sm font-semibold text-success-600">+' . $diff . ' pcs</span>',
+            $diff < 0 => '<span class="text-sm font-semibold text-danger-600">' . $diff . ' pcs</span>',
+            default   => '<span class="text-sm text-gray-400">Tidak berubah</span>',
+        };
+
+        return new HtmlString($label);
+    }
+
+    // Susun dan kembalikan schema form lengkap
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
 
-            Hidden::make('tenant_id')->default(fn() => Filament::getTenant()?->id)->required(),
+            Hidden::make('tenant_id')->default(fn() => self::currentTenantId())->required(),
             Hidden::make('user_id')->default(fn() => auth()->id())->required(),
 
-            // ── Header ──────────────────────────────────────────────────
+            // ── Header ───────────────────────────────────────────
             Section::make('Informasi Penyesuaian')
                 ->schema([
                     TextInput::make('reference_number')
@@ -51,7 +83,7 @@ class StockAdjustmentForm
                         ->label('Status')
                         ->required()
                         ->options([
-                            StockAdjustment::STATUS_DRAFT => '📝 Draft',
+                            StockAdjustment::STATUS_DRAFT     => '📝 Draft',
                             StockAdjustment::STATUS_CONFIRMED => '✅ Konfirmasi & Terapkan',
                         ])
                         ->default(StockAdjustment::STATUS_CONFIRMED)
@@ -66,25 +98,21 @@ class StockAdjustmentForm
                 ])
                 ->columns(2),
 
-            // ── Items ────────────────────────────────────────────────────
+            // ── Items ─────────────────────────────────────────────
             Section::make('Item Penyesuaian')
                 ->schema([
                     Repeater::make('items')
                         ->label('')
                         ->relationship()
                         ->schema([
-
-                            // Pilih produk
                             Select::make('product_id')
                                 ->label('Produk')
                                 ->options(function (): array {
-                                    $tenantId = Filament::getTenant()?->id;
+                                    $tenantId = self::currentTenantId();
+                                    if (!$tenantId) return [];
 
-                                    if (!$tenantId)
-                                        return [];
-
-                                    return Product::query()
-                                        ->where('tenant_id', $tenantId)
+                                    // Hanya produk aktif + track stock milik tenant aktif
+                                    return Product::where('tenant_id', $tenantId)
                                         ->where('is_active', true)
                                         ->where('track_stock', true)
                                         ->pluck('name', 'id')
@@ -94,18 +122,15 @@ class StockAdjustmentForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, ?string $state) {
-                                    if (!$state)
-                                        return;
-                                    $product = Product::find($state);
-                                    if (!$product)
-                                        return;
+                                    // Validasi produk terhadap tenant sebelum auto-fill stok
+                                    $product = self::getProductForCurrentTenant($state);
+                                    if (!$product) return;
 
                                     $set('stock_before', $product->stock);
-                                    $set('stock_after', $product->stock);
+                                    $set('stock_after',  $product->stock);
                                 })
                                 ->columnSpan(2),
 
-                            // Stok saat ini (read-only, auto-fill saat produk dipilih)
                             TextInput::make('stock_before')
                                 ->label('Stok Saat Ini')
                                 ->numeric()
@@ -114,7 +139,6 @@ class StockAdjustmentForm
                                 ->suffix('pcs')
                                 ->columnSpan(2),
 
-                            // Stok setelah adjustment (input utama user)
                             TextInput::make('stock_after')
                                 ->label('Stok Baru')
                                 ->numeric()
@@ -125,32 +149,19 @@ class StockAdjustmentForm
                                 ->helperText('Masukkan jumlah stok yang benar')
                                 ->columnSpan(2),
 
-                            // Selisih: tampil otomatis (Placeholder, realtime)
+                            // Tampil selisih secara realtime
                             Placeholder::make('diff_display')
                                 ->label('Selisih')
                                 ->live()
-                                ->content(function (Get $get): HtmlString {
-                                    $before = (int) ($get('stock_before') ?? 0);
-                                    $after = (int) ($get('stock_after') ?? 0);
-                                    $diff = $after - $before;
-
-                                    if ($diff > 0) {
-                                        $label = '<span class="text-sm font-semibold text-success-600">+' . $diff . ' pcs</span>';
-                                    } elseif ($diff < 0) {
-                                        $label = '<span class="text-sm font-semibold text-danger-600">' . $diff . ' pcs</span>';
-                                    } else {
-                                        $label = '<span class="text-sm text-gray-400">Tidak berubah</span>';
-                                    }
-
-                                    return new HtmlString($label);
-                                })
+                                ->content(fn(Get $get): HtmlString => self::diffBadge(
+                                    (int) ($get('stock_before') ?? 0),
+                                    (int) ($get('stock_after')  ?? 0),
+                                ))
                                 ->columnSpan(2),
 
-                            // Hidden fields yang disimpan ke DB
                             Hidden::make('qty_difference')->dehydrated(),
                             Hidden::make('type')->dehydrated(),
 
-                            // Catatan per item
                             Textarea::make('notes')
                                 ->label('Catatan Item')
                                 ->rows(1)
@@ -165,12 +176,14 @@ class StockAdjustmentForm
                         ->defaultItems(1)
                         ->collapsible()
                         ->itemLabel(
-                            fn(array $state): ?string =>
-                            Product::find($state['product_id'] ?? null)?->name ?? 'Produk baru'
+                            // Label item pakai nama produk milik tenant aktif saja
+                            fn(array $state): ?string => self::getProductForCurrentTenant(
+                                $state['product_id'] ?? null
+                            )?->name ?? 'Produk baru'
                         ),
                 ]),
 
-            // ── Summary ──────────────────────────────────────────────────
+            // ── Summary ───────────────────────────────────────────
             Section::make('Ringkasan')
                 ->schema([
                     Placeholder::make('summary_display')
@@ -178,26 +191,22 @@ class StockAdjustmentForm
                         ->live()
                         ->content(function (Get $get): HtmlString {
                             $items = $get('items') ?? [];
-                            $adds = 0;
-                            $subtracts = 0;
-                            $total = count($items);
+                            $adds = $subs = 0;
 
                             foreach ($items as $item) {
                                 $diff = (int) ($item['stock_after'] ?? 0) - (int) ($item['stock_before'] ?? 0);
-                                if ($diff > 0)
-                                    $adds++;
-                                elseif ($diff < 0)
-                                    $subtracts++;
+                                if ($diff > 0) $adds++;
+                                elseif ($diff < 0) $subs++;
                             }
 
-                            $noChange = $total - $adds - $subtracts;
+                            $noChange = count($items) - $adds - $subs;
 
                             return new HtmlString(
                                 '<div class="flex gap-6 text-sm">' .
-                                '<span class="text-success-600 font-medium">✅ Penambahan: ' . $adds . ' produk</span>' .
-                                '<span class="text-danger-600 font-medium">❌ Pengurangan: ' . $subtracts . ' produk</span>' .
-                                '<span class="text-gray-500">— Tidak berubah: ' . $noChange . ' produk</span>' .
-                                '</div>'
+                                    '<span class="text-success-600 font-medium">✅ Penambahan: ' . $adds . ' produk</span>' .
+                                    '<span class="text-danger-600 font-medium">❌ Pengurangan: ' . $subs . ' produk</span>' .
+                                    '<span class="text-gray-500">— Tidak berubah: ' . $noChange . ' produk</span>' .
+                                    '</div>'
                             );
                         })
                         ->columnSpanFull(),

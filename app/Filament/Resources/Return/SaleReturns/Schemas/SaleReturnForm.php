@@ -21,25 +21,46 @@ use Illuminate\Support\HtmlString;
 
 class SaleReturnForm
 {
+    // Ambil tenant_id yang sedang aktif
+    protected static function currentTenantId(): ?int
+    {
+        return Filament::getTenant()?->id;
+    }
+
+    // Format angka ke Rupiah
     protected static function rp(float $n): string
     {
         return 'Rp ' . number_format($n, 0, ',', '.');
     }
 
+    // Jumlahkan subtotal dari semua item
     protected static function calcTotal(Get $get): float
     {
-        $items = $get('items') ?? [];
-        return (float) collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
+        return (float) collect($get('items') ?? [])->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
     }
 
+    // Ambil SaleItem hanya jika sale_id milik tenant aktif — cegah manipulasi ID
+    protected static function getSaleItemForCurrentTenant(?string $saleItemId, ?string $saleId): ?SaleItem
+    {
+        if (!$saleItemId || !$saleId) return null;
+
+        return SaleItem::with('product')
+            ->where('id', $saleItemId)
+            ->where('sale_id', $saleId)
+            ->whereHas('sale', fn($q) => $q->where('tenant_id', self::currentTenantId()))
+            ->first();
+    }
+
+    // Susun dan kembalikan schema form lengkap
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
 
-            Hidden::make('tenant_id')->default(fn() => Filament::getTenant()?->id)->required(),
+            Hidden::make('tenant_id')->default(fn() => self::currentTenantId())->required(),
             Hidden::make('user_id')->default(fn() => auth()->id())->required(),
             Hidden::make('total_refund')->dehydrated(),
 
+            // ── Header Info ──────────────────────────────────────
             Section::make('Informasi Retur')
                 ->schema([
                     TextInput::make('reference_number')
@@ -59,8 +80,9 @@ class SaleReturnForm
                         ->relationship(
                             'sale',
                             'invoice_number',
-                            fn($q) => $q?->where('tenant_id', Filament::getTenant()?->id)
-                                ?->whereIn('status', [Sale::STATUS_PAID, Sale::STATUS_PENDING])
+                            // Filter invoice hanya milik tenant aktif
+                            fn($q) => $q->where('tenant_id', self::currentTenantId())
+                                ->whereIn('status', [Sale::STATUS_PAID, Sale::STATUS_PENDING])
                         )
                         ->searchable()
                         ->required()
@@ -100,6 +122,7 @@ class SaleReturnForm
                 ])
                 ->columns(2),
 
+            // ── Items Repeater ───────────────────────────────────
             Section::make('Item yang Diretur')
                 ->schema([
                     Repeater::make('items')
@@ -112,8 +135,10 @@ class SaleReturnForm
                                     $saleId = $get('../../sale_id');
                                     if (!$saleId) return [];
 
+                                    // Hanya tampilkan items dari sale milik tenant aktif
                                     return SaleItem::with('product')
                                         ->where('sale_id', $saleId)
+                                        ->whereHas('sale', fn($q) => $q->where('tenant_id', self::currentTenantId()))
                                         ->get()
                                         ->mapWithKeys(fn($item) => [
                                             $item->id => ($item->product->name ?? '-') .
@@ -125,8 +150,8 @@ class SaleReturnForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                    if (!$state) return;
-                                    $saleItem = SaleItem::with('product')->find($state);
+                                    // Validasi item terhadap tenant + sale sebelum auto-fill
+                                    $saleItem = self::getSaleItemForCurrentTenant($state, $get('../../sale_id'));
                                     if (!$saleItem) return;
 
                                     $set('product_id', $saleItem->product_id);
@@ -145,9 +170,7 @@ class SaleReturnForm
                                 ->minValue(1)
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get) {
-                                    $price = (float) ($get('price') ?: 0);
-                                    $qty   = (int)   ($get('qty')   ?: 1);
-                                    $set('subtotal', $price * $qty);
+                                    $set('subtotal', (float) ($get('price') ?: 0) * (int) ($get('qty') ?: 1));
                                 })
                                 ->columnSpan(2),
 
@@ -158,9 +181,7 @@ class SaleReturnForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get) {
-                                    $price = (float) ($get('price') ?: 0);
-                                    $qty   = (int)   ($get('qty')   ?: 1);
-                                    $set('subtotal', $price * $qty);
+                                    $set('subtotal', (float) ($get('price') ?: 0) * (int) ($get('qty') ?: 1));
                                 })
                                 ->columnSpan(2),
 
@@ -169,8 +190,8 @@ class SaleReturnForm
                                 ->live()
                                 ->content(fn(Get $get): HtmlString => new HtmlString(
                                     '<span class="text-sm font-medium">' .
-                                        self::rp((float) ($get('price') ?: 0) * (int) ($get('qty') ?: 1)) .
-                                        '</span>'
+                                    self::rp((float) ($get('price') ?: 0) * (int) ($get('qty') ?: 1)) .
+                                    '</span>'
                                 ))
                                 ->columnSpan(2),
 
@@ -185,14 +206,15 @@ class SaleReturnForm
                         ->columns(10)
                         ->live()
                         ->afterStateUpdated(function (Set $set, Get $get) {
-                            $items = $get('items') ?? [];
-                            $set('total_refund', collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0)));
+                            // Update total_refund setiap ada perubahan item
+                            $set('total_refund', self::calcTotal($get));
                         })
                         ->addActionLabel('+ Tambah Item')
                         ->minItems(1)
                         ->defaultItems(1),
                 ]),
 
+            // ── Ringkasan ─────────────────────────────────────────
             Section::make('Ringkasan')
                 ->schema([
                     Placeholder::make('total_refund_display')
@@ -200,8 +222,8 @@ class SaleReturnForm
                         ->live()
                         ->content(fn(Get $get): HtmlString => new HtmlString(
                             '<span class="text-lg font-bold text-primary-600">' .
-                                self::rp(self::calcTotal($get)) .
-                                '</span>'
+                            self::rp(self::calcTotal($get)) .
+                            '</span>'
                         )),
                 ])
                 ->columns(1),

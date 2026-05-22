@@ -39,7 +39,6 @@ class StockAdjustmentSeeder extends Seeder
         ];
 
         foreach ($adjustments as $a) {
-            // 1. Insert ke stock_adjustments (header saja, tanpa product_id)
             $adjId = DB::table('stock_adjustments')->insertGetId([
                 'uuid'             => Str::uuid(),
                 'tenant_id'        => $t->id,

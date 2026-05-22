@@ -20,65 +20,65 @@ class SaleReturnSeeder extends Seeder
             ->where('product_id', DB::table('products')->where('sku', $sku)->value('id'))
             ->first();
 
-        // ── Return 1 — Agus kembalikan 2 Indomie (kemasan penyok) ──
+        // ── Return 1 — Rendra kembalikan Xiaomi (layar bergaris) ──
         $s  = $sale('INV-T1-20260310-001');
-        $si = $saleItem($s->id, 'IMG-001');
+        $si = $saleItem($s->id, 'XMI-RN13');
 
         $sr1 = DB::table('sale_returns')->insertGetId([
             'uuid'             => Str::uuid(),
             'tenant_id'        => $t->id,
             'user_id'          => $u->id,
             'sale_id'          => $s->id,
-            'reference_number' => 'SR-T1-20260311-001',
-            'return_date'      => '2026-03-11',
-            'total_refund'     => 7000,
+            'reference_number' => 'SR-T1-20260312-001',
+            'return_date'      => '2026-03-12',
+            'total_refund'     => 2499000,
             'status'           => 'approved',
-            'refund_method'    => 'refund',
-            'reason'           => 'Produk rusak / penyok saat diterima',
-            'notes'            => 'Refund tunai kepada pelanggan',
+            'refund_method'    => 'exchange',
+            'reason'           => 'Layar bergaris setelah 2 hari pemakaian — cacat produksi',
+            'notes'            => 'Tukar unit baru stok yang sama',
             'created_at'       => $now,
             'updated_at'       => $now,
         ]);
         DB::table('sale_return_items')->insert([[
             'sale_return_id' => $sr1,
-            'product_id'     => DB::table('products')->where('sku', 'IMG-001')->value('id'),
+            'product_id'     => DB::table('products')->where('sku', 'XMI-RN13')->value('id'),
             'sale_item_id'   => $si->id,
-            'qty'            => 2,
-            'price'          => 3500,
-            'subtotal'       => 7000,
-            'reason'         => 'Kemasan penyok',
+            'qty'            => 1,
+            'price'          => 2499000,
+            'subtotal'       => 2499000,
+            'reason'         => 'Cacat produksi — layar bergaris',
         ]]);
-        $this->returnStock('IMG-001', 2, 'sale_return', $sr1, $t->id, $u->id, $now);
+        $this->returnStock('XMI-RN13', 1, 'sale_return', $sr1, $t->id, $u->id, $now);
 
-        // ── Return 2 — Dewi kembalikan charger (tidak compatible) ──
+        // ── Return 2 — Sari kembalikan charger GaN (tidak sesuai pesanan) ──
         $s  = $sale('INV-T1-20260315-001');
-        $si = $saleItem($s->id, 'CHG-065');
+        $si = $saleItem($s->id, 'CHG-G65');
 
         $sr2 = DB::table('sale_returns')->insertGetId([
             'uuid'             => Str::uuid(),
             'tenant_id'        => $t->id,
             'user_id'          => $u->id,
             'sale_id'          => $s->id,
-            'reference_number' => 'SR-T1-20260316-001',
-            'return_date'      => '2026-03-16',
-            'total_refund'     => 150000,
+            'reference_number' => 'SR-T1-20260317-001',
+            'return_date'      => '2026-03-17',
+            'total_refund'     => 189000,
             'status'           => 'approved',
             'refund_method'    => 'store_credit',
-            'reason'           => 'Charger tidak kompatibel dengan perangkat pelanggan',
+            'reason'           => 'Charger tidak cocok dengan port laptop — salah pilih',
             'notes'            => 'Kredit toko untuk pembelian berikutnya',
             'created_at'       => $now,
             'updated_at'       => $now,
         ]);
         DB::table('sale_return_items')->insert([[
             'sale_return_id' => $sr2,
-            'product_id'     => DB::table('products')->where('sku', 'CHG-065')->value('id'),
+            'product_id'     => DB::table('products')->where('sku', 'CHG-G65')->value('id'),
             'sale_item_id'   => $si->id,
             'qty'            => 1,
-            'price'          => 150000,
-            'subtotal'       => 150000,
-            'reason'         => 'Tidak kompatibel',
+            'price'          => 189000,
+            'subtotal'       => 189000,
+            'reason'         => 'Tidak kompatibel — salah beli',
         ]]);
-        $this->returnStock('CHG-065', 1, 'sale_return', $sr2, $t->id, $u->id, $now);
+        $this->returnStock('CHG-G65', 1, 'sale_return', $sr2, $t->id, $u->id, $now);
     }
 
     private function returnStock(string $sku, int $qty, string $refType, int $refId, int $tenantId, int $userId, $now): void
@@ -97,7 +97,7 @@ class SaleReturnSeeder extends Seeder
             'qty'            => $qty,
             'stock_before'   => $stockBefore,
             'stock_after'    => $stockAfter,
-            'notes'          => 'Retur penjualan - stok dikembalikan',
+            'notes'          => 'Retur penjualan — stok dikembalikan',
             'created_at'     => $now,
         ]);
 

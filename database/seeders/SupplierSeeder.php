@@ -35,10 +35,6 @@ class SupplierSeeder extends Seeder
     {
         return [
             ['name' => 'PT Indofood CBP',         'code' => 'SUP-001', 'phone' => '021-5550001', 'email' => 'sales@indofood.co.id', 'address' => 'Jl. Jend. Sudirman, Jakarta',          'contact_person' => 'Pak Slamet'],
-            ['name' => 'CV Elektro Jaya',          'code' => 'SUP-002', 'phone' => '031-3334455', 'email' => 'order@elektrojaya.com', 'address' => 'Jl. Kapas Krampung No. 8, Surabaya', 'contact_person' => 'Pak Joko', 'payable_amount' => 350000, 'notes' => 'Min. order Rp 500.000'],
-            ['name' => 'Distro Pakaian Surabaya',  'code' => 'SUP-003', 'phone' => '085123456789', 'address' => 'Jl. Tunjungan No. 15, Surabaya',                                          'contact_person' => 'Bu Yanti'],
-            ['name' => 'Grosir ATK Murah',         'code' => 'SUP-004', 'phone' => '081234509876', 'email' => 'atk@grosirmurah.id', 'address' => 'Jl. Blauran No. 30, Surabaya'],
-            ['name' => 'UD Tirta Segar',           'code' => 'SUP-005', 'phone' => '031-7779900', 'address' => 'Jl. Kalibokor No. 4, Surabaya',                                          'is_active' => false, 'notes' => 'Supplier tidak aktif'],
         ];
     }
 }

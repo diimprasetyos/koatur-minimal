@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Quotations\Quotations\Schemas;
 
+use App\Models\Product\Product;
 use App\Models\Quotations\Quotation;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -15,6 +17,34 @@ use Filament\Schemas\Schema;
 
 class QuotationForm
 {
+    // Ambil tenant_id yang sedang aktif
+    protected static function currentTenantId(): ?int
+    {
+        return Filament::getTenant()?->id;
+    }
+
+    // Ambil produk hanya milik tenant aktif — cegah manipulasi ID dari luar
+    protected static function getProductForCurrentTenant(?string $productId): ?Product
+    {
+        if (!$productId) return null;
+
+        return Product::where('id', $productId)
+            ->where('tenant_id', self::currentTenantId())
+            ->first();
+    }
+
+    // Hitung ulang total dari items + diskon + pajak, lalu set ke form
+    protected static function recalcTotals(Get $get, Set $set): void
+    {
+        $items    = $get('items') ?? [];
+        $subtotal = collect($items)->sum(fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0));
+        $discount = (float) ($get('discount_amount') ?? 0);
+        $tax      = (float) ($get('tax_amount')      ?? 0);
+
+        $set('total_amount', round($subtotal - $discount + $tax, 2));
+    }
+
+    // Susun dan kembalikan schema form lengkap
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -31,11 +61,11 @@ class QuotationForm
                     Select::make('status')
                         ->label('Status')
                         ->options([
-                            Quotation::STATUS_DRAFT => 'Draft',
-                            Quotation::STATUS_SENT => 'Terkirim',
+                            Quotation::STATUS_DRAFT    => 'Draft',
+                            Quotation::STATUS_SENT     => 'Terkirim',
                             Quotation::STATUS_ACCEPTED => 'Diterima',
                             Quotation::STATUS_REJECTED => 'Ditolak',
-                            Quotation::STATUS_EXPIRED => 'Kadaluarsa',
+                            Quotation::STATUS_EXPIRED  => 'Kadaluarsa',
                         ])
                         ->default(Quotation::STATUS_DRAFT)
                         ->required(),
@@ -46,7 +76,12 @@ class QuotationForm
 
                     Select::make('customer_id')
                         ->label('Customer')
-                        ->relationship('customer', 'name')
+                        ->relationship(
+                            'customer',
+                            'name',
+                            // Filter customer hanya milik tenant aktif
+                            fn($q) => $q->where('tenant_id', self::currentTenantId())
+                        )
                         ->searchable()
                         ->preload()
                         ->columnSpan(2),
@@ -65,19 +100,23 @@ class QuotationForm
                         ->schema([
                             Select::make('product_id')
                                 ->label('Produk')
-                                ->relationship('product', 'name')
+                                ->relationship(
+                                    'product',
+                                    'name',
+                                    // Filter produk hanya milik tenant aktif
+                                    fn($q) => $q->where('tenant_id', self::currentTenantId())
+                                )
                                 ->searchable()
                                 ->preload()
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(function ($state, Set $set) {
-                                    if (!$state)
-                                        return;
-                                    $product = \App\Models\Product\Product::find($state);
-                                    if ($product) {
-                                        $set('product_name', $product->name);
-                                        $set('price', $product->selling_price ?? $product->price ?? 0);
-                                    }
+                                ->afterStateUpdated(function (?string $state, Set $set) {
+                                    // Validasi produk terhadap tenant sebelum auto-fill harga
+                                    $product = self::getProductForCurrentTenant($state);
+                                    if (!$product) return;
+
+                                    $set('product_name', $product->name);
+                                    $set('price',        $product->selling_price ?? $product->price ?? 0);
                                 })
                                 ->columnSpan(3),
 
@@ -93,10 +132,8 @@ class QuotationForm
                                 ->prefix('Rp')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                    $qty = (float) ($get('quantity') ?? 0);
-                                    $price = (float) ($state ?? 0);
-                                    $set('subtotal', $qty * $price);
+                                ->afterStateUpdated(function (Get $get, Set $set) {
+                                    $set('subtotal', (float) ($get('quantity') ?? 0) * (float) ($get('price') ?? 0));
                                 }),
 
                             TextInput::make('quantity')
@@ -106,10 +143,8 @@ class QuotationForm
                                 ->minValue(1)
                                 ->default(1)
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                    $qty = (float) ($state ?? 0);
-                                    $price = (float) ($get('price') ?? 0);
-                                    $set('subtotal', $qty * $price);
+                                ->afterStateUpdated(function (Get $get, Set $set) {
+                                    $set('subtotal', (float) ($get('quantity') ?? 0) * (float) ($get('price') ?? 0));
                                 }),
 
                             TextInput::make('subtotal')
@@ -123,15 +158,7 @@ class QuotationForm
                         ->addActionLabel('Tambah Item')
                         ->reorderable(false)
                         ->live()
-                        ->afterStateUpdated(function (Get $get, Set $set) {
-                            $items = $get('items') ?? [];
-                            $subtotal = collect($items)->sum(
-                                fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
-                            );
-                            $discount = (float) ($get('discount_amount') ?? 0);
-                            $tax = (float) ($get('tax_amount') ?? 0);
-                            $set('total_amount', round($subtotal - $discount + $tax, 2));
-                        }),
+                        ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set)),
                 ]),
 
             Section::make('Ringkasan')
@@ -143,15 +170,7 @@ class QuotationForm
                         ->prefix('Rp')
                         ->default(0)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function (Get $get, Set $set) {
-                            $items = $get('items') ?? [];
-                            $subtotal = collect($items)->sum(
-                                fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
-                            );
-                            $discount = (float) ($get('discount_amount') ?? 0);
-                            $tax = (float) ($get('tax_amount') ?? 0);
-                            $set('total_amount', round($subtotal - $discount + $tax, 2));
-                        }),
+                        ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set)),
 
                     TextInput::make('tax_amount')
                         ->label('Pajak')
@@ -159,36 +178,16 @@ class QuotationForm
                         ->prefix('Rp')
                         ->default(0)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function (Get $get, Set $set) {
-                            $items = $get('items') ?? [];
-                            $subtotal = collect($items)->sum(
-                                fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
-                            );
-                            $discount = (float) ($get('discount_amount') ?? 0);
-                            $tax = (float) ($get('tax_amount') ?? 0);
-                            $set('total_amount', round($subtotal - $discount + $tax, 2));
-                        }),
+                        ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set)),
 
                     TextInput::make('total_amount')
                         ->label('Total')
                         ->numeric()
                         ->prefix('Rp')
                         ->disabled()
-                        ->dehydrated(true)
+                        ->dehydrated()
                         ->columnSpan(2),
                 ]),
         ]);
-    }
-
-    protected static function recalcTotals(Get $get, Set $set): void
-    {
-        $items = $get('items') ?? [];
-        $subtotal = collect($items)->sum(
-            fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
-        );
-        $discount = (float) ($get('discount_amount') ?? 0);
-        $tax = (float) ($get('tax_amount') ?? 0);
-
-        $set('total_amount', round($subtotal - $discount + $tax, 2));
     }
 }

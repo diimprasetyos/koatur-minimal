@@ -61,7 +61,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'billing_cycle'        => 'monthly',
                 'max_tenants'          => 5,
                 'max_users_per_tenant' => 20,
-                'max_products'         => 0,      // 0 = unlimited
+                'max_products'         => 0,
                 'features'             => [
                     'pos'              => true,
                     'reports'          => true,

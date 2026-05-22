@@ -18,33 +18,53 @@ class PurchaseSeeder extends Seeder
         $sup  = fn(string $code) => DB::table('suppliers')
             ->where('tenant_id', $t->id)->where('code', $code)->first();
 
-        // ── PO 1 — Indofood, sembako, lunas ──
+        // ── PO 1 — Distributor Samsung & Xiaomi, smartphone, lunas ──
         $po1 = $this->purchase($t->id, $u->id, $sup('SUP-001')->id,
-            'PO-T1-20260305-001', 'INV-IDF-20260305', '2026-03-05', null,
-            1120000, 0, 0, 1120000, 1120000, 0,
+            'PO-T1-20260305-001', 'INV-DSX-20260305', '2026-03-05', null,
+            110000000, 0, 0, 110000000, 110000000, 0,
             'received', 'paid', 'transfer', null, $now);
         $this->purchaseItems($po1, [
-            [$prod('IMG-001'), 200, 200, 2800],
-            [$prod('AQU-001'), 150, 150, 3000],
+            [$prod('SGA-A35'),  15, 15, 3500000],
+            [$prod('XMI-RN13'), 20, 20, 2000000],
+            [$prod('RLM-C67'),  18, 18, 1500000],
         ], $t->id, $u->id, $now);
 
-        // ── PO 2 — CV Elektro Jaya, charger, bayar sebagian ──
+        // ── PO 2 — Distributor ASUS & Lenovo, laptop, bayar sebagian ──
         $po2 = $this->purchase($t->id, $u->id, $sup('SUP-002')->id,
             'PO-T1-20260308-001', null, '2026-03-08', '2026-04-08',
-            950000, 0, 0, 950000, 600000, 350000,
-            'received', 'partial', 'transfer', 'Sisa hutang dibayar bulan depan', $now);
+            123800000, 0, 0, 123800000, 80000000, 43800000,
+            'received', 'partial', 'transfer', 'Sisa hutang dibayar akhir bulan', $now);
         $this->purchaseItems($po2, [
-            [$prod('CHG-065'), 10, 10, 95000],
+            [$prod('ASS-VB14'), 10, 10, 8500000],
+            [$prod('LNV-IPS3'),  8,  8, 7200000],
+            [$prod('ACR-AS3R'),  6,  6, 6600000],
         ], $t->id, $u->id, $now);
 
-        // ── PO 3 — Distro Pakaian, kaos, lunas ──
+        // ── PO 3 — Distributor aksesoris & audio, lunas ──
         $po3 = $this->purchase($t->id, $u->id, $sup('SUP-003')->id,
-            'PO-T1-20260312-001', 'DIST-INV-3201', '2026-03-12', null,
-            3200000, 200000, 0, 3000000, 3000000, 0,
+            'PO-T1-20260312-001', 'INV-AKS-3312', '2026-03-12', null,
+            22285000, 285000, 0, 22000000, 22000000, 0,
             'received', 'paid', 'transfer', null, $now);
         $this->purchaseItems($po3, [
-            [$prod('KPS-W-L'), 40, 40, 40000],
-            [$prod('KPS-B-M'), 40, 40, 40000],
+            [$prod('TGL-65U'),   200, 200, 8000],
+            [$prod('CSE-IP15'),   80,  80, 35000],
+            [$prod('RNG-MAG'),   120, 120, 15000],
+            [$prod('PWB-BS20'),   30,  30, 250000],
+            [$prod('TWS-ANK'),    25,  25, 210000],
+            [$prod('SPK-JBL'),    15,  15, 450000],
+            [$prod('HDP-SNY'),    12,  12, 620000],
+        ], $t->id, $u->id, $now);
+
+        // ── PO 4 — Distributor kabel & charger, lunas ──
+        $po4 = $this->purchase($t->id, $u->id, $sup('SUP-003')->id,
+            'PO-T1-20260314-001', 'INV-KBL-3314', '2026-03-14', null,
+            17380000, 0, 0, 17380000, 17380000, 0,
+            'received', 'paid', 'cash', null, $now);
+        $this->purchaseItems($po4, [
+            [$prod('CHG-G65'),  50,  50, 120000],
+            [$prod('KBL-CC1'), 150, 150, 22000],
+            [$prod('KBL-CL1'), 100, 100, 35000],
+            [$prod('ADP-HDC'),  40,  40, 75000],
         ], $t->id, $u->id, $now);
     }
 

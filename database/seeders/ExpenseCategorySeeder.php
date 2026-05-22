@@ -29,12 +29,12 @@ class ExpenseCategorySeeder extends Seeder
     private function data(): array
     {
         return [
-            ['Gaji & Upah',        '#6366f1'],
-            ['Sewa & Utilitas',    '#f59e0b'],
-            ['Transportasi',       '#10b981'],
-            ['Perlengkapan Toko',  '#3b82f6'],
-            ['Marketing & Promosi','#ec4899'],
-            ['Lain-lain',          '#94a3b8'],
+            ['Gaji & Upah',            '#6366f1'],
+            ['Sewa & Utilitas',        '#f59e0b'],
+            ['Ongkos Kirim & Logistik','#10b981'],
+            ['Servis & Garansi',       '#3b82f6'],
+            ['Marketing & Promosi',    '#ec4899'],
+            ['Lain-lain',              '#94a3b8'],
         ];
     }
 }

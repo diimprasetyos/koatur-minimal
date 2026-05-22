@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Adjustment\StockMovements\Schemas;
 
+use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -11,34 +12,56 @@ use Filament\Schemas\Schema;
 
 class StockMovementForm
 {
+    // Ambil tenant_id yang sedang aktif
+    protected static function currentTenantId(): ?int
+    {
+        return Filament::getTenant()?->id;
+    }
+
+    // Susun dan kembalikan schema form lengkap
     public static function configure(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Hidden::make('tenant_id')
-                    ->default(fn() => Filament::getTenant()?->id)
-                    ->required(),
-                Select::make('product_id')
-                    ->relationship('product', 'name')
-                    ->required(),
-                Select::make('user_id')
-                    ->relationship('user', 'name'),
-                TextInput::make('reference_type'),
-                TextInput::make('reference_id')
-                    ->numeric(),
-                TextInput::make('type')
-                    ->required(),
-                TextInput::make('qty')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('stock_before')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('stock_after')
-                    ->required()
-                    ->numeric(),
-                Textarea::make('notes')
-                    ->columnSpanFull(),
-            ]);
+        return $schema->components([
+
+            Hidden::make('tenant_id')->default(fn() => self::currentTenantId())->required(),
+
+            Select::make('product_id')
+                ->label('Produk')
+                ->relationship(
+                    'product',
+                    'name',
+                    // Filter produk hanya milik tenant aktif
+                    fn($q) => $q->where('tenant_id', self::currentTenantId())
+                )
+                ->searchable()
+                ->required(),
+
+            Select::make('user_id')
+                ->label('User')
+                ->relationship(
+                    'user',
+                    'name',
+                    // Filter user hanya yang tergabung di tenant aktif
+                    fn($q) => $q->whereHas(
+                        'tenants',
+                        fn($t) => $t->where('tenant_id', self::currentTenantId())
+                    )
+                )
+                ->searchable(),
+
+            TextInput::make('reference_type')->label('Tipe Referensi'),
+
+            TextInput::make('reference_id')->label('ID Referensi')->numeric(),
+
+            TextInput::make('type')->label('Tipe Gerakan')->required(),
+
+            TextInput::make('qty')->label('Qty')->required()->numeric(),
+
+            TextInput::make('stock_before')->label('Stok Sebelum')->required()->numeric(),
+
+            TextInput::make('stock_after')->label('Stok Sesudah')->required()->numeric(),
+
+            Textarea::make('notes')->label('Catatan')->columnSpanFull(),
+        ]);
     }
 }

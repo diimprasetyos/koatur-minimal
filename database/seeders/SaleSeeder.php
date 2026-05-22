@@ -18,112 +18,68 @@ class SaleSeeder extends Seeder
         $cust = fn(string $name) => DB::table('customers')
             ->where('tenant_id', $t->id)->where('name', $name)->first();
 
-        // ── Penjualan 1 — tunai, Agus, sembako ──
-        $s1 = $this->sale(
-            $t->id,
-            $u->id,
-            $cust('Agus Prasetyo')->id,
-            'INV-T1-20260310-001',
-            '2026-03-10',
-            'cash',
-            37500,
-            0,
-            37500,
-            40000,
-            2500,
-            'paid',
-            null,
-            $now
-        );
+        // ── Penjualan 1 — tunai, Rendra, beli smartphone + aksesoris ──
+        $s1 = $this->sale($t->id, $u->id, $cust('Rendra Kusuma')->id,
+            'INV-T1-20260310-001', '2026-03-10', 'cash',
+            4324000, 100000, 4224000, 4500000, 276000,
+            'paid', null, $now);
         $this->saleItems($s1, [
-            [$prod('IMG-001'), 5, 3500, 2800, 0],
-            [$prod('AQU-001'), 5, 4000, 3000, 0],
+            [$prod('XMI-RN13'), 1, 2499000, 2000000, 0],
+            [$prod('TGL-65U'),  2, 25000,   8000,    0],
+            [$prod('KBL-CC1'),  3, 49000,   22000,   0],
         ], $t->id, $u->id, $now);
 
-        // ── Penjualan 2 — QRIS, Dewi, elektronik + pakaian, diskon member ──
-        $s2 = $this->sale(
-            $t->id,
-            $u->id,
-            $cust('Dewi Rahayu')->id,
-            'INV-T1-20260315-001',
-            '2026-03-15',
-            'qris',
-            215000,
-            15000,
-            200000,
-            200000,
-            0,
-            'paid',
-            'Diskon member 7%',
-            $now
-        );
+        // ── Penjualan 2 — transfer, Sari, beli laptop + charger, diskon member ──
+        $s2 = $this->sale($t->id, $u->id, $cust('Sari Dewi')->id,
+            'INV-T1-20260315-001', '2026-03-15', 'transfer',
+            10188000, 488000, 9700000, 9700000, 0,
+            'paid', 'Diskon member 5%', $now);
         $this->saleItems($s2, [
-            [$prod('CHG-065'), 1, 150000, 95000, 10000],
-            [$prod('KPS-W-L'), 1, 65000,  40000, 5000],
+            [$prod('ASS-VB14'), 1, 9999000, 8500000, 488000],
+            [$prod('CHG-G65'),  1, 189000,  120000,  0],
         ], $t->id, $u->id, $now);
 
-        // ── Penjualan 3 — transfer, Toko Sinar Mas, ATK, bayar sebagian ──
-        $s3 = $this->sale(
-            $t->id,
-            $u->id,
-            $cust('Toko Sinar Mas')->id,
-            'INV-T1-20260320-001',
-            '2026-03-20',
-            'transfer',
-            400000,
-            0,
-            400000,
-            250000,
-            0,
-            'partial',
-            'Sisa tagihan Rp 150.000',
-            $now
-        );
+        // ── Penjualan 3 — transfer, CV Maju Bersama, pembelian massal aksesoris, bayar sebagian ──
+        $s3 = $this->sale($t->id, $u->id, $cust('CV Maju Bersama')->id,
+            'INV-T1-20260320-001', '2026-03-20', 'transfer',
+            5735000, 0, 5735000, 3000000, 0,
+            'pending', 'Sisa tagihan Rp 2.735.000 — NET 30', $now);
         $this->saleItems($s3, [
-            [$prod('PEN-BLK'), 10, 25000, 15000, 0],
-            [$prod('BUK-058'), 20, 7500,  5000,  0],
+            [$prod('PWB-BS20'), 5, 349000, 250000, 0],
+            [$prod('TWS-ANK'),  5, 299000, 210000, 0],
+            [$prod('KBL-CL1'), 10, 69000,  35000,  0],
+            [$prod('RNG-MAG'), 10, 35000,  15000,  0],
         ], $t->id, $u->id, $now);
 
-        // ── Penjualan 4 — tunai, walk-in, sembako ──
-        $s4 = $this->sale(
-            $t->id,
-            $u->id,
-            null,
-            'INV-T1-20260322-001',
-            '2026-03-22',
-            'cash',
-            17500,
-            0,
-            17500,
-            20000,
-            2500,
-            'paid',
-            null,
-            $now
-        );
+        // ── Penjualan 4 — QRIS, walk-in, earbuds + case ──
+        $s4 = $this->sale($t->id, $u->id, null,
+            'INV-T1-20260322-001', '2026-03-22', 'ewallet',
+            374000, 0, 374000, 374000, 0,
+            'paid', null, $now);
         $this->saleItems($s4, [
-            [$prod('IMG-001'), 3, 3500, 2800, 0],
-            [$prod('AQU-001'), 2, 4000, 3000, 0],
+            [$prod('TWS-ANK'), 1, 299000, 210000, 0],
+            [$prod('CSE-IP15'), 1, 75000, 35000,  0],
+        ], $t->id, $u->id, $now);
+
+        // ── Penjualan 5 — tunai, Bagas, beli tablet + headphone ──
+        $s5 = $this->sale($t->id, $u->id, $cust('Bagas Firmansyah')->id,
+            'INV-T1-20260325-001', '2026-03-25', 'cash',
+            9298000, 0, 9298000, 10000000, 702000,
+            'paid', null, $now);
+        $this->saleItems($s5, [
+            [$prod('APL-IPM6'), 1, 8499000, 7200000, 0],
+            [$prod('HDP-SNY'),  1, 799000,  620000,  0],
         ], $t->id, $u->id, $now);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
 
     private function sale(
-        int $tenantId,
-        int $userId,
-        ?int $customerId,
-        string $invoice,
-        string $date,
-        string $method,
-        float $subtotal,
-        float $discount,
-        float $total,
-        float $paid,
-        float $change,
-        string $status,
-        ?string $notes,
-        $now
+        int $tenantId, int $userId, ?int $customerId,
+        string $invoice, string $date, string $method,
+        float $subtotal, float $discount, float $total,
+        float $paid, float $change, string $status,
+        ?string $notes, $now
     ): int {
         return DB::table('sales')->insertGetId([
             'uuid'           => Str::uuid(),

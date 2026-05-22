@@ -13,7 +13,6 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -22,25 +21,56 @@ use Illuminate\Support\HtmlString;
 
 class PurchaseReturnForm
 {
+    // Ambil tenant_id yang sedang aktif
+    protected static function currentTenantId(): ?int
+    {
+        return Filament::getTenant()?->id;
+    }
+
+    // Format angka ke Rupiah
     protected static function rp(float $n): string
     {
         return 'Rp ' . number_format($n, 0, ',', '.');
     }
 
+    // Jumlahkan subtotal dari semua item
     protected static function calcTotal(Get $get): float
     {
-        $items = $get('items') ?? [];
-        return (float) collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
+        return (float) collect($get('items') ?? [])->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
     }
 
+    // Ambil Purchase hanya milik tenant aktif — cegah manipulasi ID
+    protected static function getPurchaseForCurrentTenant(?string $purchaseId): ?Purchase
+    {
+        if (!$purchaseId) return null;
+
+        return Purchase::where('id', $purchaseId)
+            ->where('tenant_id', self::currentTenantId())
+            ->first();
+    }
+
+    // Ambil PurchaseItem hanya jika purchase_id milik tenant aktif
+    protected static function getPurchaseItemForCurrentTenant(?string $itemId, ?string $purchaseId): ?PurchaseItem
+    {
+        if (!$itemId || !$purchaseId) return null;
+
+        return PurchaseItem::with('product')
+            ->where('id', $itemId)
+            ->where('purchase_id', $purchaseId)
+            ->whereHas('purchase', fn($q) => $q->where('tenant_id', self::currentTenantId()))
+            ->first();
+    }
+
+    // Susun dan kembalikan schema form lengkap
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
 
-            Hidden::make('tenant_id')->default(fn() => Filament::getTenant()?->id)->required(),
+            Hidden::make('tenant_id')->default(fn() => self::currentTenantId())->required(),
             Hidden::make('user_id')->default(fn() => auth()->id())->required(),
             Hidden::make('total_return')->dehydrated(),
 
+            // ── Header Info ──────────────────────────────────────
             Section::make('Informasi Retur')
                 ->schema([
                     TextInput::make('reference_number')
@@ -61,20 +91,17 @@ class PurchaseReturnForm
                         ->relationship(
                             'purchase',
                             'reference_number',
-                            fn($q) => $q?->where('tenant_id', Filament::getTenant()?->id)
-                                    ?->whereIn('status', [Purchase::STATUS_RECEIVED, Purchase::STATUS_PARTIAL])
+                            // Filter PO hanya milik tenant aktif
+                            fn($q) => $q->where('tenant_id', self::currentTenantId())
+                                ->whereIn('status', [Purchase::STATUS_RECEIVED, Purchase::STATUS_PARTIAL])
                         )
                         ->searchable()
                         ->required()
                         ->live()
-                        ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                            // Auto-fill supplier dari purchase yang dipilih
-                            if ($state) {
-                                $purchase = Purchase::find($state);
-                                if ($purchase) {
-                                    $set('supplier_id', $purchase->supplier_id);
-                                }
-                            }
+                        ->afterStateUpdated(function (Set $set, ?string $state) {
+                            // Auto-fill supplier dari purchase yang dipilih, validasi tenant
+                            $purchase = self::getPurchaseForCurrentTenant($state);
+                            $set('supplier_id', $purchase?->supplier_id);
                             $set('items', []);
                         })
                         ->columnSpan(1),
@@ -84,7 +111,8 @@ class PurchaseReturnForm
                         ->relationship(
                             'supplier',
                             'name',
-                            fn($q) => $q?->where('tenant_id', Filament::getTenant()?->id)
+                            // Filter supplier hanya milik tenant aktif
+                            fn($q) => $q->where('tenant_id', self::currentTenantId())
                         )
                         ->searchable()
                         ->nullable()
@@ -95,7 +123,7 @@ class PurchaseReturnForm
                         ->required()
                         ->options([
                             PurchaseReturn::STATUS_APPROVED => 'Disetujui',
-                            PurchaseReturn::STATUS_PENDING => 'Menunggu',
+                            PurchaseReturn::STATUS_PENDING  => 'Menunggu',
                             PurchaseReturn::STATUS_REJECTED => 'Ditolak',
                         ])
                         ->default(PurchaseReturn::STATUS_APPROVED),
@@ -104,8 +132,8 @@ class PurchaseReturnForm
                         ->label('Metode Retur')
                         ->required()
                         ->options([
-                            'debit_note' => '📋 Debit Note',
-                            'refund' => '💵 Refund Tunai',
+                            'debit_note'  => '📋 Debit Note',
+                            'refund'      => '💵 Refund Tunai',
                             'replacement' => '🔄 Penggantian Barang',
                         ])
                         ->default('debit_note'),
@@ -123,6 +151,7 @@ class PurchaseReturnForm
                 ])
                 ->columns(2),
 
+            // ── Items Repeater ───────────────────────────────────
             Section::make('Item yang Diretur')
                 ->schema([
                     Repeater::make('items')
@@ -133,11 +162,12 @@ class PurchaseReturnForm
                                 ->label('Item Pembelian')
                                 ->options(function (Get $get): array {
                                     $purchaseId = $get('../../purchase_id');
-                                    if (!$purchaseId)
-                                        return [];
+                                    if (!$purchaseId) return [];
 
+                                    // Hanya tampilkan items dari purchase milik tenant aktif
                                     return PurchaseItem::with('product')
                                         ->where('purchase_id', $purchaseId)
+                                        ->whereHas('purchase', fn($q) => $q->where('tenant_id', self::currentTenantId()))
                                         ->get()
                                         ->mapWithKeys(fn($item) => [
                                             $item->id => ($item->product->name ?? '-') .
@@ -149,15 +179,13 @@ class PurchaseReturnForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                    if (!$state)
-                                        return;
-                                    $purchaseItem = PurchaseItem::with('product')->find($state);
-                                    if (!$purchaseItem)
-                                        return;
+                                    // Validasi item terhadap tenant + purchase sebelum auto-fill
+                                    $purchaseItem = self::getPurchaseItemForCurrentTenant($state, $get('../../purchase_id'));
+                                    if (!$purchaseItem) return;
 
                                     $set('product_id', $purchaseItem->product_id);
                                     $set('cost_price', $purchaseItem->cost_price);
-                                    $set('subtotal', $purchaseItem->cost_price * (int) ($get('qty') ?: 1));
+                                    $set('subtotal',   $purchaseItem->cost_price * (int) ($get('qty') ?: 1));
                                 })
                                 ->columnSpan(4),
 
@@ -171,9 +199,7 @@ class PurchaseReturnForm
                                 ->minValue(1)
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get) {
-                                    $cost = (float) ($get('cost_price') ?: 0);
-                                    $qty = (int) ($get('qty') ?: 1);
-                                    $set('subtotal', $cost * $qty);
+                                    $set('subtotal', (float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1));
                                 })
                                 ->columnSpan(2),
 
@@ -184,9 +210,7 @@ class PurchaseReturnForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get) {
-                                    $cost = (float) ($get('cost_price') ?: 0);
-                                    $qty = (int) ($get('qty') ?: 1);
-                                    $set('subtotal', $cost * $qty);
+                                    $set('subtotal', (float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1));
                                 })
                                 ->columnSpan(2),
 
@@ -211,14 +235,15 @@ class PurchaseReturnForm
                         ->columns(10)
                         ->live()
                         ->afterStateUpdated(function (Set $set, Get $get) {
-                            $items = $get('items') ?? [];
-                            $set('total_return', collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0)));
+                            // Update total_return setiap ada perubahan item
+                            $set('total_return', self::calcTotal($get));
                         })
                         ->addActionLabel('+ Tambah Item')
                         ->minItems(1)
                         ->defaultItems(1),
                 ]),
 
+            // ── Ringkasan ─────────────────────────────────────────
             Section::make('Ringkasan')
                 ->schema([
                     Placeholder::make('total_return_display')
