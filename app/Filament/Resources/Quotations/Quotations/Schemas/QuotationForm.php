@@ -14,6 +14,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class QuotationForm
 {
@@ -80,14 +81,13 @@ class QuotationForm
                     Select::make('customer_id')
                         ->label('Customer')
                         ->relationship(
-                            'customer',
-                            'name',
-                            // Null-safe: hanya filter jika tenant aktif tersedia
-                            function ($q) {
+                            name: 'customer',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: function (Builder $query) {
                                 $tenantId = self::currentTenantId();
-                                return $tenantId
-                                    ? $q->where('tenant_id', $tenantId)
-                                    : $q;
+                                if ($tenantId) {
+                                    $query->where('tenant_id', $tenantId);
+                                }
                             }
                         )
                         ->searchable()
@@ -109,14 +109,13 @@ class QuotationForm
                             Select::make('product_id')
                                 ->label('Produk')
                                 ->relationship(
-                                    'product',
-                                    'name',
-                                    // Null-safe: hanya filter jika tenant aktif tersedia
-                                    function ($q) {
+                                    name: 'product',
+                                    titleAttribute: 'name',
+                                    modifyQueryUsing: function (Builder $query) {
                                         $tenantId = self::currentTenantId();
-                                        return $tenantId
-                                            ? $q->where('tenant_id', $tenantId)
-                                            : $q;
+                                        if ($tenantId) {
+                                            $query->where('tenant_id', $tenantId);
+                                        }
                                     }
                                 )
                                 ->searchable()
@@ -124,7 +123,6 @@ class QuotationForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (?string $state, Set $set) {
-                                    // Validasi produk terhadap tenant sebelum auto-fill harga
                                     $product = self::getProductForCurrentTenant($state);
                                     if (!$product) return;
 
