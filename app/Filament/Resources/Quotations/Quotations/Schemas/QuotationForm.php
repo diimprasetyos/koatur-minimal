@@ -17,7 +17,7 @@ use Filament\Schemas\Schema;
 
 class QuotationForm
 {
-    // Ambil tenant_id yang sedang aktif
+    // Ambil tenant_id yang sedang aktif — null-safe
     protected static function currentTenantId(): ?int
     {
         return Filament::getTenant()?->id;
@@ -28,8 +28,11 @@ class QuotationForm
     {
         if (!$productId) return null;
 
+        $tenantId = self::currentTenantId();
+        if (!$tenantId) return null;
+
         return Product::where('id', $productId)
-            ->where('tenant_id', self::currentTenantId())
+            ->where('tenant_id', $tenantId)
             ->first();
     }
 
@@ -79,8 +82,13 @@ class QuotationForm
                         ->relationship(
                             'customer',
                             'name',
-                            // Filter customer hanya milik tenant aktif
-                            fn($q) => $q->where('tenant_id', self::currentTenantId())
+                            // Null-safe: hanya filter jika tenant aktif tersedia
+                            function ($q) {
+                                $tenantId = self::currentTenantId();
+                                return $tenantId
+                                    ? $q->where('tenant_id', $tenantId)
+                                    : $q;
+                            }
                         )
                         ->searchable()
                         ->preload()
@@ -103,8 +111,13 @@ class QuotationForm
                                 ->relationship(
                                     'product',
                                     'name',
-                                    // Filter produk hanya milik tenant aktif
-                                    fn($q) => $q->where('tenant_id', self::currentTenantId())
+                                    // Null-safe: hanya filter jika tenant aktif tersedia
+                                    function ($q) {
+                                        $tenantId = self::currentTenantId();
+                                        return $tenantId
+                                            ? $q->where('tenant_id', $tenantId)
+                                            : $q;
+                                    }
                                 )
                                 ->searchable()
                                 ->preload()
@@ -116,7 +129,7 @@ class QuotationForm
                                     if (!$product) return;
 
                                     $set('product_name', $product->name);
-                                    $set('price',        $product->selling_price ?? $product->price ?? 0);
+                                    $set('price', $product->selling_price ?? $product->price ?? 0);
                                 })
                                 ->columnSpan(3),
 
@@ -133,7 +146,7 @@ class QuotationForm
                                 ->required()
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                    $qty = (float) ($get('quantity') ?? 0);
+                                    $qty   = (float) ($get('quantity') ?? 0);
                                     $price = (float) ($state ?? 0);
                                     $set('subtotal', $qty * $price);
                                 })
@@ -147,7 +160,7 @@ class QuotationForm
                                 ->default(1)
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                    $qty = (float) ($state ?? 0);
+                                    $qty   = (float) ($state ?? 0);
                                     $price = (float) ($get('price') ?? 0);
                                     $set('subtotal', $qty * $price);
                                 })
@@ -177,15 +190,7 @@ class QuotationForm
                         ->prefix('Rp')
                         ->default(0)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function (Get $get, Set $set) {
-                            $items = $get('items') ?? [];
-                            $subtotal = collect($items)->sum(
-                                fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
-                            );
-                            $discount = (float) ($get('discount_amount') ?? 0);
-                            $tax = (float) ($get('tax_amount') ?? 0);
-                            $set('total_amount', round($subtotal - $discount + $tax, 2));
-                        })
+                        ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set))
                         ->columnSpan(2),
 
                     TextInput::make('tax_amount')
@@ -194,15 +199,7 @@ class QuotationForm
                         ->prefix('Rp')
                         ->default(0)
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function (Get $get, Set $set) {
-                            $items = $get('items') ?? [];
-                            $subtotal = collect($items)->sum(
-                                fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0)
-                            );
-                            $discount = (float) ($get('discount_amount') ?? 0);
-                            $tax = (float) ($get('tax_amount') ?? 0);
-                            $set('total_amount', round($subtotal - $discount + $tax, 2));
-                        })
+                        ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set))
                         ->columnSpan(2),
 
                     TextInput::make('total_amount')

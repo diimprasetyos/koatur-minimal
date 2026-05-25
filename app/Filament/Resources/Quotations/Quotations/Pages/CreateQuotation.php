@@ -23,9 +23,4 @@ class CreateQuotation extends CreateRecord
         $this->record->recalculate();
     }
 
-    // EditQuotation.php  
-    protected function afterSave(): void
-    {
-        $this->record->recalculate();
-    }
 }
