@@ -1,213 +1,81 @@
 <?php
 
-namespace App\Filament\Resources\Quotations\Quotations\Schemas;
+namespace App\Filament\Resources\Quotations\Quotations;
 
-use App\Models\Product\Product;
+use App\Filament\Resources\Quotations\Quotations\Pages\CreateQuotation;
+use App\Filament\Resources\Quotations\Quotations\Pages\EditQuotation;
+use App\Filament\Resources\Quotations\Quotations\Pages\ListQuotations;
+use App\Filament\Resources\Quotations\Quotations\Schemas\QuotationForm;
+use App\Filament\Resources\Quotations\Quotations\Tables\QuotationsTable;
 use App\Models\Quotations\Quotation;
+use BackedEnum;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
+use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
-class QuotationForm
+class QuotationResource extends Resource
 {
-    // Ambil tenant_id yang sedang aktif — null-safe
-    protected static function currentTenantId(): ?int
+    protected static ?string $model = Quotation::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::DocumentText;
+
+    protected static ?string $navigationLabel = 'Penawaran';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Transaksi';
+
+    public static function getModelLabel(): string
     {
-        return Filament::getTenant()?->id;
+        return 'Penawaran';
     }
 
-    // Ambil produk hanya milik tenant aktif — cegah manipulasi ID dari luar
-    protected static function getProductForCurrentTenant(?string $productId): ?Product
+    public static function getPluralModelLabel(): string
     {
-        if (!$productId) return null;
-
-        $tenantId = self::currentTenantId();
-        if (!$tenantId) return null;
-
-        return Product::where('id', $productId)
-            ->where('tenant_id', $tenantId)
-            ->first();
+        return 'Penawaran';
     }
 
-    // Hitung ulang total dari items + diskon + pajak, lalu set ke form
-    protected static function recalcTotals(Get $get, Set $set): void
-    {
-        $items    = $get('items') ?? [];
-        $subtotal = collect($items)->sum(fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0));
-        $discount = (float) ($get('discount_amount') ?? 0);
-        $tax      = (float) ($get('tax_amount')      ?? 0);
+    protected static ?string $recordTitleAttribute = 'name';
 
-        $set('total_amount', round($subtotal - $discount + $tax, 2));
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
     }
 
-    // Susun dan kembalikan schema form lengkap
-    public static function configure(Schema $schema): Schema
+    public static function getPages(): array
     {
-        return $schema->components([
+        return [
+            'index' => ListQuotations::route('/'),
+            'create' => CreateQuotation::route('/create'),
+            'edit' => EditQuotation::route('/{record}/edit'),
+        ];
+    }
 
-            Section::make('Info Penawaran')
-                ->columns(3)
-                ->schema([
-                    TextInput::make('code')
-                        ->label('Kode')
-                        ->disabled()
-                        ->placeholder('Auto-generate')
-                        ->dehydrated(false),
+    // ─── Form ─────────────────────────────────────────────────────
 
-                    Select::make('status')
-                        ->label('Status')
-                        ->options([
-                            Quotation::STATUS_DRAFT    => 'Draft',
-                            Quotation::STATUS_SENT     => 'Terkirim',
-                            Quotation::STATUS_ACCEPTED => 'Diterima',
-                            Quotation::STATUS_REJECTED => 'Ditolak',
-                            Quotation::STATUS_EXPIRED  => 'Kadaluarsa',
-                        ])
-                        ->default(Quotation::STATUS_DRAFT)
-                        ->required(),
+    public static function form(Schema $schema): Schema
+    {
+        return QuotationForm::configure($schema);
+    }
 
-                    DatePicker::make('valid_until')
-                        ->label('Berlaku Hingga')
-                        ->minDate(now()),
+    // ─── Table ────────────────────────────────────────────────────
 
-                    Select::make('customer_id')
-                        ->label('Customer')
-                        ->relationship(
-                            name: 'customer',
-                            titleAttribute: 'name',
-                            modifyQueryUsing: function (Builder $query) {
-                                $tenantId = self::currentTenantId();
-                                if ($tenantId) {
-                                    $query->where('tenant_id', $tenantId);
-                                }
-                            }
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->columnSpan(2),
+    public static function table(Table $table): Table
+    {
+        return QuotationsTable::configure($table);
+    }
 
-                    Textarea::make('notes')
-                        ->label('Catatan')
-                        ->rows(2)
-                        ->columnSpanFull(),
-                ]),
+    // ─── Query dengan eager loading ───────────────────────────────
 
-            Section::make('Item Penawaran')
-                ->schema([
-                    Repeater::make('items')
-                        ->relationship('items')
-                        ->label('')
-                        ->schema([
-                            Select::make('product_id')
-                                ->label('Produk')
-                                ->relationship(
-                                    name: 'product',
-                                    titleAttribute: 'name',
-                                    modifyQueryUsing: function (Builder $query) {
-                                        $tenantId = self::currentTenantId();
-                                        if ($tenantId) {
-                                            $query->where('tenant_id', $tenantId);
-                                        }
-                                    }
-                                )
-                                ->searchable()
-                                ->preload()
-                                ->required()
-                                ->live()
-                                ->afterStateUpdated(function (?string $state, Set $set) {
-                                    $product = self::getProductForCurrentTenant($state);
-                                    if (!$product) return;
-
-                                    $set('product_name', $product->name);
-                                    $set('price', $product->selling_price ?? $product->price ?? 0);
-                                })
-                                ->columnSpan(3),
-
-                            TextInput::make('product_name')
-                                ->label('Nama Snapshot')
-                                ->required()
-                                ->helperText('Otomatis dari produk, bisa diedit manual')
-                                ->columnSpan(2),
-
-                            TextInput::make('price')
-                                ->label('Harga')
-                                ->numeric()
-                                ->prefix('Rp')
-                                ->required()
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                    $qty   = (float) ($get('quantity') ?? 0);
-                                    $price = (float) ($state ?? 0);
-                                    $set('subtotal', $qty * $price);
-                                })
-                                ->columnSpan(2),
-
-                            TextInput::make('quantity')
-                                ->label('Qty')
-                                ->numeric()
-                                ->required()
-                                ->minValue(1)
-                                ->default(1)
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                    $qty   = (float) ($state ?? 0);
-                                    $price = (float) ($get('price') ?? 0);
-                                    $set('subtotal', $qty * $price);
-                                })
-                                ->columnSpan(1),
-
-                            TextInput::make('subtotal')
-                                ->label('Subtotal')
-                                ->numeric()
-                                ->prefix('Rp')
-                                ->disabled()
-                                ->dehydrated(false)
-                                ->columnSpan(2),
-                        ])
-                        ->columns(5)
-                        ->addActionLabel('Tambah Item')
-                        ->reorderable(false)
-                        ->live()
-                        ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set)),
-                ]),
-
-            Section::make('Ringkasan')
-                ->columns(4)
-                ->schema([
-                    TextInput::make('discount_amount')
-                        ->label('Diskon')
-                        ->numeric()
-                        ->prefix('Rp')
-                        ->default(0)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set))
-                        ->columnSpan(2),
-
-                    TextInput::make('tax_amount')
-                        ->label('Pajak')
-                        ->numeric()
-                        ->prefix('Rp')
-                        ->default(0)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set))
-                        ->columnSpan(2),
-
-                    TextInput::make('total_amount')
-                        ->label('Total')
-                        ->numeric()
-                        ->prefix('Rp')
-                        ->disabled()
-                        ->dehydrated()
-                        ->columnSpan(2),
-                ]),
-        ]);
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['customer', 'user'])
+            ->withCount('items')
+            ->where('tenant_id', Filament::getTenant()?->id);
     }
 }
