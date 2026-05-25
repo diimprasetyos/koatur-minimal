@@ -17,11 +17,12 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class SaleReturnForm
 {
-    // Ambil tenant_id yang sedang aktif
+    // Ambil tenant_id yang sedang aktif — null-safe
     protected static function currentTenantId(): ?int
     {
         return Filament::getTenant()?->id;
@@ -44,10 +45,13 @@ class SaleReturnForm
     {
         if (!$saleItemId || !$saleId) return null;
 
+        $tenantId = self::currentTenantId();
+        if (!$tenantId) return null;
+
         return SaleItem::with('product')
             ->where('id', $saleItemId)
             ->where('sale_id', $saleId)
-            ->whereHas('sale', fn($q) => $q->where('tenant_id', self::currentTenantId()))
+            ->whereHas('sale', fn($q) => $q->where('tenant_id', $tenantId))
             ->first();
     }
 
@@ -78,11 +82,15 @@ class SaleReturnForm
                     Select::make('sale_id')
                         ->label('No. Invoice Penjualan')
                         ->relationship(
-                            'sale',
-                            'invoice_number',
-                            // Filter invoice hanya milik tenant aktif
-                            fn($q) => $q->where('tenant_id', self::currentTenantId())
-                                ->whereIn('status', [Sale::STATUS_PAID, Sale::STATUS_PENDING])
+                            name: 'sale',
+                            titleAttribute: 'invoice_number',
+                            modifyQueryUsing: function (Builder $query) {
+                                $tenantId = self::currentTenantId();
+                                if ($tenantId) {
+                                    $query->where('tenant_id', $tenantId)
+                                        ->whereIn('status', [Sale::STATUS_PAID, Sale::STATUS_PENDING]);
+                                }
+                            }
                         )
                         ->searchable()
                         ->required()
@@ -135,10 +143,12 @@ class SaleReturnForm
                                     $saleId = $get('../../sale_id');
                                     if (!$saleId) return [];
 
-                                    // Hanya tampilkan items dari sale milik tenant aktif
+                                    $tenantId = self::currentTenantId();
+                                    if (!$tenantId) return [];
+
                                     return SaleItem::with('product')
                                         ->where('sale_id', $saleId)
-                                        ->whereHas('sale', fn($q) => $q->where('tenant_id', self::currentTenantId()))
+                                        ->whereHas('sale', fn($q) => $q->where('tenant_id', $tenantId))
                                         ->get()
                                         ->mapWithKeys(fn($item) => [
                                             $item->id => ($item->product->name ?? '-') .
@@ -150,7 +160,6 @@ class SaleReturnForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                    // Validasi item terhadap tenant + sale sebelum auto-fill
                                     $saleItem = self::getSaleItemForCurrentTenant($state, $get('../../sale_id'));
                                     if (!$saleItem) return;
 
@@ -206,7 +215,6 @@ class SaleReturnForm
                         ->columns(10)
                         ->live()
                         ->afterStateUpdated(function (Set $set, Get $get) {
-                            // Update total_refund setiap ada perubahan item
                             $set('total_refund', self::calcTotal($get));
                         })
                         ->addActionLabel('+ Tambah Item')

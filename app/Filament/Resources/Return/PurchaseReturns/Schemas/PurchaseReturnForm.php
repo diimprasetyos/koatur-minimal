@@ -17,11 +17,12 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class PurchaseReturnForm
 {
-    // Ambil tenant_id yang sedang aktif
+    // Ambil tenant_id yang sedang aktif — null-safe
     protected static function currentTenantId(): ?int
     {
         return Filament::getTenant()?->id;
@@ -44,8 +45,11 @@ class PurchaseReturnForm
     {
         if (!$purchaseId) return null;
 
+        $tenantId = self::currentTenantId();
+        if (!$tenantId) return null;
+
         return Purchase::where('id', $purchaseId)
-            ->where('tenant_id', self::currentTenantId())
+            ->where('tenant_id', $tenantId)
             ->first();
     }
 
@@ -54,10 +58,13 @@ class PurchaseReturnForm
     {
         if (!$itemId || !$purchaseId) return null;
 
+        $tenantId = self::currentTenantId();
+        if (!$tenantId) return null;
+
         return PurchaseItem::with('product')
             ->where('id', $itemId)
             ->where('purchase_id', $purchaseId)
-            ->whereHas('purchase', fn($q) => $q->where('tenant_id', self::currentTenantId()))
+            ->whereHas('purchase', fn($q) => $q->where('tenant_id', $tenantId))
             ->first();
     }
 
@@ -89,17 +96,20 @@ class PurchaseReturnForm
                         ->label('No. PO Pembelian')
                         ->preload()
                         ->relationship(
-                            'purchase',
-                            'reference_number',
-                            // Filter PO hanya milik tenant aktif
-                            fn($q) => $q->where('tenant_id', self::currentTenantId())
-                                ->whereIn('status', [Purchase::STATUS_RECEIVED, Purchase::STATUS_PARTIAL])
+                            name: 'purchase',
+                            titleAttribute: 'reference_number',
+                            modifyQueryUsing: function (Builder $query) {
+                                $tenantId = self::currentTenantId();
+                                if ($tenantId) {
+                                    $query->where('tenant_id', $tenantId)
+                                        ->whereIn('status', [Purchase::STATUS_RECEIVED, Purchase::STATUS_PARTIAL]);
+                                }
+                            }
                         )
                         ->searchable()
                         ->required()
                         ->live()
                         ->afterStateUpdated(function (Set $set, ?string $state) {
-                            // Auto-fill supplier dari purchase yang dipilih, validasi tenant
                             $purchase = self::getPurchaseForCurrentTenant($state);
                             $set('supplier_id', $purchase?->supplier_id);
                             $set('items', []);
@@ -109,10 +119,14 @@ class PurchaseReturnForm
                     Select::make('supplier_id')
                         ->label('Supplier')
                         ->relationship(
-                            'supplier',
-                            'name',
-                            // Filter supplier hanya milik tenant aktif
-                            fn($q) => $q->where('tenant_id', self::currentTenantId())
+                            name: 'supplier',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: function (Builder $query) {
+                                $tenantId = self::currentTenantId();
+                                if ($tenantId) {
+                                    $query->where('tenant_id', $tenantId);
+                                }
+                            }
                         )
                         ->searchable()
                         ->nullable()
@@ -164,10 +178,12 @@ class PurchaseReturnForm
                                     $purchaseId = $get('../../purchase_id');
                                     if (!$purchaseId) return [];
 
-                                    // Hanya tampilkan items dari purchase milik tenant aktif
+                                    $tenantId = self::currentTenantId();
+                                    if (!$tenantId) return [];
+
                                     return PurchaseItem::with('product')
                                         ->where('purchase_id', $purchaseId)
-                                        ->whereHas('purchase', fn($q) => $q->where('tenant_id', self::currentTenantId()))
+                                        ->whereHas('purchase', fn($q) => $q->where('tenant_id', $tenantId))
                                         ->get()
                                         ->mapWithKeys(fn($item) => [
                                             $item->id => ($item->product->name ?? '-') .
@@ -179,7 +195,6 @@ class PurchaseReturnForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                    // Validasi item terhadap tenant + purchase sebelum auto-fill
                                     $purchaseItem = self::getPurchaseItemForCurrentTenant($state, $get('../../purchase_id'));
                                     if (!$purchaseItem) return;
 
@@ -235,7 +250,6 @@ class PurchaseReturnForm
                         ->columns(10)
                         ->live()
                         ->afterStateUpdated(function (Set $set, Get $get) {
-                            // Update total_return setiap ada perubahan item
                             $set('total_return', self::calcTotal($get));
                         })
                         ->addActionLabel('+ Tambah Item')
