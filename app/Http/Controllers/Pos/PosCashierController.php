@@ -18,15 +18,12 @@ class PosCashierController extends Controller
 {
     /**
      * Ambil tenant dari request (di-inject oleh PosAuthenticate middleware).
-     * Throw exception yang jelas jika middleware tidak berjalan dengan benar.
      */
     private function getTenant(Request $request): Tenant
     {
-        $tenant = $request->_pos_tenant ?? null;
+        $tenant = $request->attributes->get('_pos_tenant');
 
         if (!$tenant instanceof Tenant) {
-            // Ini tidak boleh terjadi jika middleware 'pos.auth' aktif.
-            // Kalau sampai sini, berarti route tidak dilindungi middleware dengan benar.
             abort(500, 'Tenant tidak ditemukan di request. Pastikan middleware pos.auth aktif di route ini.');
         }
 

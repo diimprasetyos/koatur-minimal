@@ -35,6 +35,12 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->userMenuItems([
+                MenuItem::make()
+                    ->label('Buka Kasir POS')
+                    ->icon('heroicon-o-shopping-cart')
+                    ->url(fn() => route('pos.index'))
+                    ->openUrlInNewTab(),
+
                 'logout' => MenuItem::make()
                     ->label('Logout')
                     ->icon('heroicon-o-arrow-left-on-rectangle')
@@ -48,11 +54,19 @@ class AdminPanelProvider extends PanelProvider
             ->tenant(Tenant::class, slugAttribute: 'slug', ownershipRelationship: 'tenants')
 
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
+
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            ->navigationItems([
+                \Filament\Navigation\NavigationItem::make('Kasir POS')
+                    ->icon('heroicon-o-shopping-cart')
+                    ->url(fn() => route('pos.index'))
+                    ->openUrlInNewTab()
+                    ->sort(99),
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

@@ -9,15 +9,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // ── Subscription plans harus ada sebelum user dibuat ──
+            // subscription
             SubscriptionPlanSeeder::class,
 
-            // ── Master data ───────────────────────────────────────
+            // Master
             TenantSeeder::class,
             UserSeeder::class,
             PermissionSeeder::class,
 
-            // ── Data operasional ──────────────────────────────────
+            // Operasional
             CategorySeeder::class,
             ProductSeeder::class,
             CustomerSeeder::class,
@@ -25,13 +25,13 @@ class DatabaseSeeder extends Seeder
             ExpenseCategorySeeder::class,
             ExpenseSeeder::class,
 
-            // ── Transaksi ─────────────────────────────────────────
-            SaleSeeder::class,
-            PurchaseSeeder::class,
-            SaleReturnSeeder::class,
-            PurchaseReturnSeeder::class,
-            StockAdjustmentSeeder::class,
-            QuotationSeeder::class,
+            // Transaksi
+            // SaleSeeder::class,
+            // PurchaseSeeder::class,
+            // SaleReturnSeeder::class,
+            // PurchaseReturnSeeder::class,
+            // StockAdjustmentSeeder::class,
+            // QuotationSeeder::class,
         ]);
     }
 }
