@@ -98,7 +98,7 @@
                     praktis untuk toko kelontong dan frozen food.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-                    <a href="{{ route('filament.admin.auth.login') }}"
+                    <a href="/register"
                         class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium text-center">
                         Coba Sekarang
                     </a>

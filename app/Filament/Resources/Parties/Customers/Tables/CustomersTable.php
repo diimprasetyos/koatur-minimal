@@ -39,9 +39,11 @@ class CustomersTable
                     ->label('Kontak Person')
                     ->searchable(),
                 TextColumn::make('payable_amount')
-                    ->label('Jumlah Terutang')
+                    ->label('Jumlah Hutang')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->money('IDR')
+                    ->color(fn($state) => $state > 0 ? 'danger' : 'success'),
                 IconColumn::make('is_active')
                     ->label('Aktif')
                     ->boolean(),

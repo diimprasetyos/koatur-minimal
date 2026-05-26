@@ -112,6 +112,16 @@ class SaleForm
                             )
                             ->searchable()
                             ->nullable()
+                            ->helperText(function (Get $get) {
+                                $customerId = $get('customer_id');
+                                if (!$customerId) return null;
+
+                                $customer = \App\Models\Parties\Customer::find($customerId);
+                                if (!$customer || $customer->payable_amount <= 0) return null;
+
+                                return '⚠️ Hutang aktif: Rp ' . number_format($customer->payable_amount, 0, ',', '.');
+                            })
+                            ->live()
                             ->createOptionForm([
                                 TextInput::make('name')->label('Nama')->required(),
                                 TextInput::make('phone')->label('No. HP')->nullable(),

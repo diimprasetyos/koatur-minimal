@@ -66,7 +66,7 @@ class RegisterController extends Controller
 
                 // 6. Buat Subscription trial 7 hari
                 //    Method createTrial() ada di model Subscription
-                Subscription::createTrial($user, trialDays: 3);
+                Subscription::createTrial($user, trialDays: 10);
             });
 
             // 7. Login otomatis setelah register

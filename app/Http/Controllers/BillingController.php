@@ -70,7 +70,7 @@ class BillingController extends Controller
                 'subscription_plan_id' => $trialPlan->id,
                 'status'               => Subscription::STATUS_TRIAL,
                 'started_at'           => now(),
-                'expires_at'           => now()->addDays(10),
+                'expires_at'           => now()->addDays(3),
             ]);
         }
 

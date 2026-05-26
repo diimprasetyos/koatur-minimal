@@ -64,8 +64,56 @@ class Sale extends Model
             $model->sale_date ??= now();
         });
 
+        // Saat sale baru dibuat
+        static::created(function (Sale $sale) {
+            self::syncCustomerDebt($sale, oldStatus: null);
+        });
+
+        // Saat sale diupdate (misal status berubah)
+        static::updated(function (Sale $sale) {
+            self::syncCustomerDebt($sale, oldStatus: $sale->getOriginal('status'));
+        });
+
+        // Saat sale dihapus, hapus hutang-nya juga
+        static::deleted(function (Sale $sale) {
+            self::removeCustomerDebt($sale);
+        });
     }
 
+    protected static function syncCustomerDebt(Sale $sale, ?string $oldStatus): void
+    {
+        if (!$sale->customer_id) return;
+
+        $customer = \App\Models\Parties\Customer::find($sale->customer_id);
+        if (!$customer) return;
+
+        $debt = $sale->total - $sale->paid; // selisih = hutang
+        $isNowPending  = $sale->status === Sale::STATUS_PENDING;
+        $wasPending    = $oldStatus === Sale::STATUS_PENDING;
+
+        if ($isNowPending && !$wasPending) {
+            // Baru jadi Belum Lunas → tambah hutang
+            $customer->increment('payable_amount', max(0, $debt));
+        } elseif (!$isNowPending && $wasPending) {
+            // Dari Belum Lunas → Lunas/Batal → hapus hutang lama
+            $oldDebt = $sale->getOriginal('total') - $sale->getOriginal('paid');
+            $customer->decrement('payable_amount', max(0, $oldDebt));
+        } elseif ($isNowPending && $wasPending) {
+            // Tetap Belum Lunas tapi nilai berubah → adjust selisihnya
+            $oldDebt = $sale->getOriginal('total') - $sale->getOriginal('paid');
+            $diff    = max(0, $debt) - max(0, $oldDebt);
+            $customer->increment('payable_amount', $diff);
+        }
+    }
+
+    protected static function removeCustomerDebt(Sale $sale): void
+    {
+        if (!$sale->customer_id || $sale->status !== Sale::STATUS_PENDING) return;
+
+        $customer = \App\Models\Parties\Customer::find($sale->customer_id);
+        $debt = $sale->total - $sale->paid;
+        $customer?->decrement('payable_amount', max(0, $debt));
+    }
     // ─── Relations ────────────────────────────────────────────────
 
     public function tenant(): BelongsTo
