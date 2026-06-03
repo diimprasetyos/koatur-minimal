@@ -16,7 +16,6 @@ class RegisterController extends Controller
 {
     public function showRegistrationForm()
     {
-        // Kalau sudah login, langsung ke admin
         if (Auth::check()) {
             return redirect('/admin');
         }
@@ -36,16 +35,16 @@ class RegisterController extends Controller
 
         try {
             DB::transaction(function () use ($validated, &$user) {
-                // 1. Buat User
+                // buat User
                 $user = User::create([
                     'name'              => $validated['name'],
                     'email'             => $validated['email'],
                     'password'          => Hash::make($validated['password']),
-                    'subscription_plan' => 'trial', // fallback lama, nanti bisa dihapus
+                    'subscription_plan' => 'trial',
                     'is_active'         => true,
                 ]);
 
-                // 2. Buat Tenant (toko)
+                // buat Tenant (toko)
                 $tenant = Tenant::create([
                     'name'      => $validated['store_name'],
                     'phone'     => $validated['phone'] ?? null,
@@ -53,26 +52,24 @@ class RegisterController extends Controller
                     // slug di-generate otomatis di boot() model
                 ]);
 
-                // 3. Attach user ke tenant via pivot (tabel tenant_user)
+                // attach user ke tenant via pivot (tabel tenant_user)
                 $user->tenants()->attach($tenant->id);
 
-                // 4. Set current_tenant_id supaya Filament langsung masuk toko yang benar
+                // set current_tenant_id supaya Filament langsung masuk toko yang benar
                 $user->update(['current_tenant_id' => $tenant->id]);
 
-                // 5. Assign role 'owner' ke user di tenant ini
-                //    Pastikan role 'owner' sudah ada di tabel roles (via RoleSeeder)
+                // assign role 'owner' ke user di tenant ini
                 $ownerRole = Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
                 $user->assignRole($ownerRole);
 
-                // 6. Buat Subscription trial 7 hari
-                //    Method createTrial() ada di model Subscription
+                // buat subscription trial duration
                 Subscription::createTrial($user, trialDays: 10);
             });
 
-            // 7. Login otomatis setelah register
+            // login setelah register
             Auth::login($user);
 
-            // 8. Redirect ke Filament admin panel
+            // redirect ke Filament admin panel
             return redirect('/admin')
                 ->with('success', 'Selamat datang! Kamu punya 3 hari trial gratis.');
         } catch (\Exception $e) {

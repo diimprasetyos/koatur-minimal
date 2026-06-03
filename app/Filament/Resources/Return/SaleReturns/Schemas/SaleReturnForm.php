@@ -222,7 +222,6 @@ class SaleReturnForm
                         ->defaultItems(1),
                 ]),
 
-            // ── Ringkasan ─────────────────────────────────────────
             Section::make('Ringkasan')
                 ->schema([
                     Placeholder::make('total_refund_display')

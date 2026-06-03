@@ -306,23 +306,17 @@
                 <div>
                     <h4 class="font-bold mb-4">Hubungi Kami</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="/cdn-cgi/l/email-protection#a0d3d5d0d0cfd2d4e0c5d8c1cdd0ccc58ec3cfcd"
-                                class="hover:opacity-80 transition"><span class="__cf_email__"
-                                    data-cfemail="f2818782829d8086b2978a939f829e97dc919d9f">[email&#160;protected]</span></a>
+                        <li> <a href="mailto:pilarpasificcode@gmail.com" class="hover:opacity-80 transition">
+                                pilarpasificcode@gmail.com
+                            </a>
                         </li>
-                        <li><a href="tel:+1234567890" class="hover:opacity-80 transition">+123.XXXX.XXXX</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-4">Sosial Media</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="hover:opacity-80 transition">Instagram</a></li>
-                        <li><a href="#" class="hover:opacity-80 transition">Facebook</a></li>
+                        <li><a href="tel:+6281247758775" class="hover:opacity-80 transition">+62 812 4775 8775</a>
+                        </li>
                     </ul>
                 </div>
             </div>
             <div class="border-t border-white/20 pt-8">
-                <p class="text-sm text-center opacity-80">© {{ date('Y') }} Your Company. All rights reserved.</p>
+                <p class="text-sm text-center opacity-80">© {{ date('Y') }} Pilar Pasific Code. All rights reserved.</p>
             </div>
         </div>
     </footer>
