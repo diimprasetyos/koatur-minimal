@@ -57,11 +57,11 @@ class Sale extends Model
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            $model->uuid ??= Str::uuid();
+            $model->uuid       ??= Str::uuid();
+            $model->tenant_id  ??= Filament::getTenant()?->id;
+            $model->user_id    ??= auth()->id();
+            $model->sale_date  ??= now();
             $model->invoice_number ??= self::generateInvoiceNumber($model->tenant_id);
-            $model->tenant_id ??= Filament::getTenant()?->id;
-            $model->user_id ??= auth()->id();
-            $model->sale_date ??= now();
         });
 
         // Saat sale baru dibuat
@@ -157,12 +157,26 @@ class Sale extends Model
 
     public static function generateInvoiceNumber(int $tenantId): string
     {
-        $date = now()->format('Ymd');
-        $count = self::whereDate('created_at', today())
-            ->where('tenant_id', $tenantId)
-            ->count() + 1;
+        return DB::transaction(function () use ($tenantId) {
+            $date = now()->format('Ymd');
 
-        return 'INV-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            // Pakai lockForUpdate() agar tidak race condition
+            $last = self::whereDate('created_at', today())
+                ->where('tenant_id', $tenantId)
+                ->lockForUpdate()
+                ->orderBy('id', 'desc')
+                ->value('invoice_number');
+
+            if ($last) {
+                // Ambil sequence terakhir dari invoice_number
+                $lastSeq = (int) substr($last, -4);
+                $next = $lastSeq + 1;
+            } else {
+                $next = 1;
+            }
+
+            return 'INV-' . $date . '-' . str_pad($next, 4, '0', STR_PAD_LEFT);
+        });
     }
 
     /**
