@@ -151,7 +151,7 @@ class PosCashierController extends Controller
     public function processSale(Request $request, Sale $sale): JsonResponse
     {
         // Pastikan sale milik tenant yang sedang aktif
-        if ($sale->tenant_id !== $this->getTenant($request)->id) {
+        if ((int) $sale->tenant_id !== (int) $this->getTenant($request)->id) {
             return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
         }
 
@@ -189,7 +189,7 @@ class PosCashierController extends Controller
 
     public function receipt(Request $request, Sale $sale): JsonResponse
     {
-        if ($sale->tenant_id !== $this->getTenant($request)->id) {
+        if ((int) $sale->tenant_id !== (int) $this->getTenant($request)->id) {
             return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
         }
 
