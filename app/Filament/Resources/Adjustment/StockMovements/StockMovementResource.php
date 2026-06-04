@@ -9,10 +9,12 @@ use App\Filament\Resources\Adjustment\StockMovements\Schemas\StockMovementForm;
 use App\Filament\Resources\Adjustment\StockMovements\Tables\StockMovementsTable;
 use App\Models\Adjustment\StockMovement;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class StockMovementResource extends Resource
@@ -61,5 +63,11 @@ class StockMovementResource extends Resource
             // 'create' => CreateStockMovement::route('/create'),
             // 'edit' => EditStockMovement::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('tenant_id', Filament::getTenant()?->id);
     }
 }

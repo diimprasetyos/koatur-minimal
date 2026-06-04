@@ -6,7 +6,6 @@ use App\Models\Adjustment\StockAdjustment;
 use App\Models\Product\Product;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -26,7 +25,7 @@ class StockAdjustmentForm
         return Filament::getTenant()?->id;
     }
 
-    // Ambil produk hanya milik tenant aktif — cegah manipulasi ID dari luar
+    // Ambil produk hanya milik tenant aktif — hanya untuk display/UX
     protected static function getProductForCurrentTenant(?string $productId): ?Product
     {
         if (!$productId) return null;
@@ -34,12 +33,6 @@ class StockAdjustmentForm
         return Product::where('id', $productId)
             ->where('tenant_id', self::currentTenantId())
             ->first();
-    }
-
-    // Format angka tanpa desimal
-    protected static function rp(int $n): string
-    {
-        return number_format($n, 0, ',', '.');
     }
 
     // Hitung dan render badge selisih stok (+/- /tidak berubah)
@@ -61,8 +54,9 @@ class StockAdjustmentForm
     {
         return $schema->components([
 
-            Hidden::make('tenant_id')->default(fn() => self::currentTenantId())->required(),
-            Hidden::make('user_id')->default(fn() => auth()->id())->required(),
+            // FIX: Hidden tenant_id & user_id DIHAPUS dari form.
+            // Nilainya di-set di model StockAdjustment::booted() saat creating,
+            // sehingga tidak bisa di-spoof lewat browser/DevTools.
 
             // ── Header ───────────────────────────────────────────
             Section::make('Informasi Penyesuaian')
@@ -122,9 +116,13 @@ class StockAdjustmentForm
                                 ->required()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, ?string $state) {
-                                    // Validasi produk terhadap tenant sebelum auto-fill stok
+                                    // Hanya untuk UX/display — validasi sesungguhnya ada di model
                                     $product = self::getProductForCurrentTenant($state);
-                                    if (!$product) return;
+                                    if (!$product) {
+                                        $set('stock_before', 0);
+                                        $set('stock_after', 0);
+                                        return;
+                                    }
 
                                     $set('stock_before', $product->stock);
                                     $set('stock_after',  $product->stock);
@@ -135,7 +133,9 @@ class StockAdjustmentForm
                                 ->label('Stok Saat Ini')
                                 ->numeric()
                                 ->disabled()
-                                ->dehydrated()
+                                // FIX: dehydrated(false) — nilai ini TIDAK dikirim ke server.
+                                // stock_before akan diambil langsung dari DB di StockAdjustmentItem::saving().
+                                ->dehydrated(false)
                                 ->suffix('pcs')
                                 ->columnSpan(2),
 
@@ -149,7 +149,7 @@ class StockAdjustmentForm
                                 ->helperText('Masukkan jumlah stok yang benar')
                                 ->columnSpan(2),
 
-                            // Tampil selisih secara realtime
+                            // Tampil selisih secara realtime (hanya display, bukan acuan server)
                             Placeholder::make('diff_display')
                                 ->label('Selisih')
                                 ->live()
@@ -159,8 +159,10 @@ class StockAdjustmentForm
                                 ))
                                 ->columnSpan(2),
 
-                            Hidden::make('qty_difference')->dehydrated(),
-                            Hidden::make('type')->dehydrated(),
+                            // FIX: qty_difference & type tidak perlu dikirim dari form —
+                            // keduanya dihitung ulang di StockAdjustmentItem::saving()
+                            // Hidden::make('qty_difference') — DIHAPUS
+                            // Hidden::make('type') — DIHAPUS
 
                             Textarea::make('notes')
                                 ->label('Catatan Item')

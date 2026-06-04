@@ -15,8 +15,9 @@ use Illuminate\Support\Str;
 class StockAdjustment extends Model
 {
     protected $fillable = [
-        'tenant_id',
-        'user_id',
+        // FIX: tenant_id & user_id DIHAPUS dari fillable.
+        // Keduanya wajib diset dari server (booted/creating), bukan dari input form.
+        // Ini mencegah mass-assignment spoofing jika ada celah di layer lain.
         'uuid',
         'reference_number',
         'adjustment_date',
@@ -36,19 +37,16 @@ class StockAdjustment extends Model
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            $model->uuid ??= Str::uuid();
+            $model->uuid             ??= Str::uuid();
+            // FIX: tenant_id & user_id selalu diambil dari sesi aktif, tidak dari input
+            $model->tenant_id         = Filament::getTenant()?->id;
+            $model->user_id           = auth()->id();
             $model->reference_number ??= self::generateReferenceNumber($model->tenant_id);
-            $model->tenant_id ??= Filament::getTenant()?->id;
-            $model->user_id ??= auth()->id();
-            $model->adjustment_date ??= now()->toDateString();
+            $model->adjustment_date  ??= now()->toDateString();
         });
 
-        // FIX: applyAdjustment dipanggil di 'updated' (status draft→confirmed)
-        // JANGAN panggil di 'created' — items belum tersimpan saat itu.
-        // Untuk create langsung confirmed, panggil dari CreateStockAdjustment::afterCreate()
         static::updated(function (self $model) {
             if ($model->wasChanged('status') && $model->status === self::STATUS_CONFIRMED) {
-                // Guard: jangan apply 2x
                 $alreadyApplied = StockMovement::where('reference_type', StockMovement::REF_ADJUSTMENT)
                     ->where('reference_id', $model->id)
                     ->exists();
@@ -81,12 +79,12 @@ class StockAdjustment extends Model
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(
-            Tenant::class,  // model Tenant
-            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
-            'id',                       // FK ke model ini di "pivot"
-            'tenant_id',                // FK ke tenant di "pivot"
-            'id',                       // PK model ini
-            'id',                       // PK tenant
+            Tenant::class,
+            $this->getTable(),
+            'id',
+            'tenant_id',
+            'id',
+            'id',
         );
     }
 
@@ -94,7 +92,7 @@ class StockAdjustment extends Model
 
     public static function generateReferenceNumber(int $tenantId): string
     {
-        $date = now()->format('Ymd');
+        $date  = now()->format('Ymd');
         $count = self::whereDate('created_at', today())
             ->where('tenant_id', $tenantId)
             ->count() + 1;
@@ -108,7 +106,6 @@ class StockAdjustment extends Model
      */
     public function applyAdjustment(): void
     {
-        // FIX: StockMovement::REF_ADJUSTMENT harus didefinisikan di StockMovement
         DB::transaction(function () {
             foreach ($this->items as $item) {
                 $product = $item->product;
@@ -117,39 +114,40 @@ class StockAdjustment extends Model
                     continue;
                 }
 
-                // stock_before diambil dari stok AKTUAL produk saat apply,
-                // bukan nilai yang diinput user (karena bisa berubah sejak form diisi)
+                // FIX: Pastikan produk memang milik tenant ini sebelum mengubah stok
+                if ((int) $product->tenant_id !== (int) $this->tenant_id) {
+                    continue;
+                }
+
                 $stockBefore = $product->stock;
                 $product->update(['stock' => $item->stock_after]);
 
-                // qty_difference dihitung ulang dari stok aktual, bukan dari input
                 $qtyDiff = $item->stock_after - $stockBefore;
 
                 if ($qtyDiff === 0) {
-                    continue; // tidak perlu catat movement jika tidak ada perubahan
+                    continue;
                 }
 
                 StockMovement::create([
-                    'tenant_id' => $this->tenant_id,
-                    'product_id' => $item->product_id,
-                    'user_id' => $this->user_id,
+                    'tenant_id'      => $this->tenant_id,
+                    'product_id'     => $item->product_id,
+                    'user_id'        => $this->user_id,
                     'reference_type' => StockMovement::REF_ADJUSTMENT,
-                    'reference_id' => $this->id,
-                    'type' => $qtyDiff > 0 ? StockMovement::TYPE_IN : StockMovement::TYPE_OUT,
-                    'qty' => abs($qtyDiff),
-                    'stock_before' => $stockBefore,
-                    'stock_after' => $item->stock_after,
-                    'notes' => ($item->notes ?: 'Penyesuaian Stok #' . $this->reference_number),
+                    'reference_id'   => $this->id,
+                    'type'           => $qtyDiff > 0 ? StockMovement::TYPE_IN : StockMovement::TYPE_OUT,
+                    'qty'            => abs($qtyDiff),
+                    'stock_before'   => $stockBefore,
+                    'stock_after'    => $item->stock_after,
+                    'notes'          => ($item->notes ?: 'Penyesuaian Stok #' . $this->reference_number),
                 ]);
 
-                // Update qty_difference di item agar sinkron dengan yang benar-benar diterapkan
                 $item->updateQuietly([
-                    'stock_before' => $stockBefore,
+                    'stock_before'   => $stockBefore,
                     'qty_difference' => $qtyDiff,
-                    'type' => match (true) {
+                    'type'           => match (true) {
                         $qtyDiff > 0 => 'add',
                         $qtyDiff < 0 => 'subtract',
-                        default => 'set',
+                        default      => 'set',
                     },
                 ]);
             }

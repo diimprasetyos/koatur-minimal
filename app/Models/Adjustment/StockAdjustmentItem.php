@@ -3,8 +3,10 @@
 namespace App\Models\Adjustment;
 
 use App\Models\Product\Product;
+use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\UnauthorizedException;
 
 class StockAdjustmentItem extends Model
 {
@@ -31,7 +33,24 @@ class StockAdjustmentItem extends Model
     protected static function booted(): void
     {
         static::saving(function (self $item) {
-            // Auto-hitung qty_difference dan type dari stock_before & stock_after
+            // FIX: Validasi kepemilikan produk di server — cegah product_id dari tenant lain
+            $tenantId = $item->stockAdjustment?->tenant_id
+                ?? Filament::getTenant()?->id;
+
+            $product = Product::where('id', $item->product_id)
+                ->where('tenant_id', $tenantId)
+                ->first();
+
+            if (!$product) {
+                throw new UnauthorizedException(
+                    "Produk #{$item->product_id} tidak ditemukan atau bukan milik tenant ini."
+                );
+            }
+
+            // FIX: stock_before selalu diambil dari DB — jangan percaya nilai dari form/client
+            $item->stock_before = $product->stock;
+
+            // Hitung qty_difference dan type dari nilai yang sudah divalidasi
             $diff = $item->stock_after - $item->stock_before;
             $item->qty_difference = $diff;
             $item->type = match (true) {
