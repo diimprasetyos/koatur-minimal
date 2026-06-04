@@ -1,318 +1,227 @@
 {{-- resources/views/pos/print/receipt.blade.php --}}
-{{--
-    Template PDF struk thermal — dioptimasi untuk DomPDF.
-    DomPDF tidak support CSS variables dan display:table dengan baik,
-    jadi semua layout pakai <table> HTML native + inline style.
---}}
+@php
+    $paperWidthMm = (int)($paperWidthMm ?? env('POS_PAPER_WIDTH', 58));
+    $isNarrow     = $paperWidthMm <= 58;
+    $pageW        = $isNarrow ? '58mm' : '80mm';
+    $printW       = $isNarrow ? '54mm' : '76mm';
+    $cols         = $isNarrow ? 28 : 42;
+    $fsPt         = $isNarrow ? '8pt' : '9pt';
+
+    function strRow(string $left, string $right, int $width): string {
+        $rLen  = mb_strlen($right);
+        $left  = mb_substr($left, 0, $width - $rLen - 1);
+        $space = $width - mb_strlen($left) - $rLen;
+        return $left . str_repeat(' ', max(1, $space)) . $right;
+    }
+    function strLine(int $width, string $char = '-'): string {
+        return str_repeat($char, $width);
+    }
+    function strCenter(string $text, int $width): string {
+        $len = mb_strlen($text);
+        if ($len >= $width) return $text;
+        return str_repeat(' ', intdiv($width - $len, 2)) . $text;
+    }
+    function rpFmt(float $n): string {
+        return 'Rp ' . number_format($n, 0, ',', '.');
+    }
+
+    $lines = [];
+
+    // Header toko
+    foreach (explode("\n", wordwrap(mb_strtoupper($receipt['store_name']), $cols, "\n", true)) as $l)
+        $lines[] = strCenter($l, $cols);
+    if (!empty($receipt['store_address']))
+        foreach (explode("\n", wordwrap($receipt['store_address'], $cols, "\n", true)) as $l)
+            $lines[] = strCenter($l, $cols);
+    if (!empty($receipt['store_phone']))
+        $lines[] = strCenter($receipt['store_phone'], $cols);
+
+    $lines[] = strLine($cols, '-');
+    $lines[] = strCenter('STRUK PEMBAYARAN', $cols);
+    $lines[] = strLine($cols, '-');
+
+    // Meta
+    foreach ([
+        'Tanggal' => $receipt['date'],
+        'Kasir'   => $receipt['cashier_name'],
+        'No.'     => '#' . $receipt['invoice_number'],
+    ] as $key => $val) {
+        if (mb_strlen($key) + 1 + mb_strlen($val) > $cols) {
+            $lines[] = $key;
+            foreach (explode("\n", wordwrap($val, $cols, "\n", true)) as $vl)
+                $lines[] = '  ' . $vl;
+        } else {
+            $lines[] = strRow($key, $val, $cols);
+        }
+    }
+
+    $lines[] = strLine($cols, '-');
+
+    // Items
+    foreach ($receipt['items'] as $i => $item) {
+        $totalStr = rpFmt((float)$item['total']);
+        $maxNW    = $cols - mb_strlen($totalStr) - 1;
+        $nameLines = explode("\n", wordwrap(($i+1).'. '.$item['name'], $maxNW, "\n", true));
+        $lines[] = strRow(mb_substr($nameLines[0], 0, $maxNW), $totalStr, $cols);
+        for ($j = 1; $j < count($nameLines); $j++) $lines[] = '   '.$nameLines[$j];
+        $lines[] = '   '.$item['qty'].' x '.rpFmt((float)$item['price']);
+    }
+
+    $lines[] = strLine($cols, '-');
+
+    // Diskon
+    if ((float)$receipt['discount'] > 0) {
+        $lines[] = strRow('Subtotal', rpFmt((float)$receipt['subtotal']), $cols);
+        $lines[] = strRow('Diskon',   '- '.rpFmt((float)$receipt['discount']), $cols);
+        $lines[] = strLine($cols, '-');
+    }
+
+    // Total
+    $lines[] = strLine($cols, '=');
+    $lines[] = strRow('TOTAL', rpFmt((float)$receipt['total']), $cols);
+    $lines[] = strLine($cols, '=');
+
+    // Metode
+    $methodLabel = match($receipt['payment_method']) {
+        'transfer' => 'TRANSFER BANK', 'ewallet' => 'E-WALLET', default => 'TUNAI / CASH',
+    };
+    $lines[] = strCenter('[ '.$methodLabel.' ]', $cols);
+    $lines[] = '';
+
+    // Dibayar & kembalian
+    $lines[] = strRow('Dibayar',   rpFmt((float)$receipt['paid']),   $cols);
+    $lines[] = strRow('Kembalian', rpFmt((float)$receipt['change']), $cols);
+    $lines[] = strLine($cols, '-');
+
+    // Footer
+    foreach (explode("\n", wordwrap($receipt['note'], $cols, "\n", true)) as $l)
+        $lines[] = strCenter($l, $cols);
+    $lines[] = strCenter('~ ~ ~ ~ ~', $cols);
+    $lines[] = '';
+
+    $receiptText = implode("\n", $lines);
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Struk #{{ $receipt['invoice_number'] }}</title>
 <style>
-    @php
-        $isNarrow  = ($paperWidthMm ?? 58) == 58;
-        $szBase    = $isNarrow ? '8pt'  : '9pt';
-        $szSm      = $isNarrow ? '7pt'  : '8pt';
-        $szLg      = $isNarrow ? '11pt' : '13pt';
-        $szXl      = $isNarrow ? '12pt' : '14pt';
-        $pageW     = $isNarrow ? '54mm' : '76mm';
-        $padH      = $isNarrow ? '3mm'  : '4mm';
-    @endphp
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-        width: {{ $pageW }};
-        font-family: 'Courier New', Courier, monospace;
-        font-size: {{ $szBase }};
-        color: #111;
         background: #fff;
-        line-height: 1.5;
+        color: #000;
+        margin: 0; padding: 0;
     }
 
-    .wrap {
+    pre {
+        font-family: monospace;
+        font-size: {{ $fsPt }};
+        line-height: 1.35;
+        white-space: pre;
+        color: #000;
+        background: #fff;
         width: {{ $pageW }};
-        padding: 4mm {{ $padH }} 8mm;
+        margin: 0 auto;
+        padding: 4mm 3mm 8mm;
+        overflow-x: hidden;
     }
 
-    /* Tabel full-width helper */
-    table { width: 100%; border-collapse: collapse; }
-    td    { padding: 0; vertical-align: top; }
-
-    /* ── Header toko ── */
-    .store-name {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: {{ $szXl }};
-        font-weight: bold;
-        text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding-bottom: 1mm;
+    .no-print {
+        position: fixed; top: 10px; right: 10px; z-index: 999;
+        display: flex; gap: 8px; font-family: sans-serif;
     }
-    .store-sub {
-        font-size: {{ $szSm }};
-        color: #555;
-        text-align: center;
-        line-height: 1.4;
+    .btn-print {
+        background: #2563EB; color: #fff; border: none; border-radius: 8px;
+        padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .btn-close {
+        background: #fff; color: #555; border: 1px solid #ddd; border-radius: 8px;
+        padding: 8px 14px; font-size: 14px; cursor: pointer;
     }
 
-    /* ── Divider ── */
-    .hr-dashed {
-        border: none;
-        border-top: 1px dashed #aaa;
-        margin: 2mm 0;
-    }
-    .hr-solid {
-        border: none;
-        border-top: 1px solid #111;
-        margin: 2mm 0;
-    }
-    .hr-bold {
-        border: none;
-        border-top: 2px solid #111;
-        margin: 1.5mm 0;
-    }
-
-    /* ── Label "Struk Pembayaran" ── */
-    .receipt-label {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: {{ $szSm }};
-        text-align: center;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: #666;
-        margin-bottom: 2mm;
-    }
-
-    /* ── Meta rows ── */
-    .meta-key {
-        font-size: {{ $szSm }};
-        color: #666;
-        width: 38%;
-    }
-    .meta-sep {
-        font-size: {{ $szSm }};
-        color: #666;
-        width: 5%;
-    }
-    .meta-val {
-        font-size: {{ $szSm }};
-        color: #111;
-        font-weight: bold;
-        width: 57%;
-    }
-
-    /* ── Item rows ── */
-    .item-name {
-        font-size: {{ $szBase }};
-        font-weight: bold;
-        color: #111;
-        width: 65%;
-        padding-right: 1mm;
-        word-break: break-word;
-    }
-    .item-total {
-        font-size: {{ $szBase }};
-        font-weight: bold;
-        color: #111;
-        width: 35%;
-        text-align: right;
-        white-space: nowrap;
-    }
-    .item-detail {
-        font-size: {{ $szSm }};
-        color: #666;
-        padding-left: 2mm;
-        padding-top: 0.5mm;
-        padding-bottom: 1mm;
-    }
-
-    /* ── Summary rows ── */
-    .sum-label {
-        font-size: {{ $szBase }};
-        color: #555;
-        width: 55%;
-    }
-    .sum-val {
-        font-size: {{ $szBase }};
-        color: #111;
-        width: 45%;
-        text-align: right;
-        white-space: nowrap;
-    }
-
-    /* Total — baris paling penting */
-    .total-label {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: {{ $szLg }};
-        font-weight: bold;
-        color: #000;
-        width: 45%;
-    }
-    .total-val {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: {{ $szLg }};
-        font-weight: bold;
-        color: #000;
-        width: 55%;
-        text-align: right;
-        white-space: nowrap;
-    }
-
-    /* Kembalian */
-    .change-label, .change-val {
-        font-size: {{ $szBase }};
-        font-weight: bold;
-        color: #000;
-    }
-    .change-val { text-align: right; white-space: nowrap; }
-
-    /* Diskon */
-    .discount-val { color: #c00; text-align: right; white-space: nowrap; }
-
-    /* Method badge */
-    .method-wrap { margin: 1.5mm 0; }
-    .method-badge {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: {{ $szSm }};
-        font-weight: bold;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        border: 1px solid #111;
-        padding: 0.5mm 2mm;
-        display: inline-block;
-    }
-
-    /* Footer */
-    .footer {
-        text-align: center;
-        padding-top: 2.5mm;
-        margin-top: 2.5mm;
-        border-top: 1px dashed #aaa;
-    }
-    .footer-note {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: {{ $szSm }};
-        color: #555;
-        line-height: 1.6;
-    }
-    .footer-wave {
-        font-size: {{ $szSm }};
-        color: #aaa;
-        letter-spacing: 3px;
-        margin-top: 1.5mm;
+    /*
+     * KUNCI UTAMA:
+     * @page size diset via JavaScript setelah halaman load,
+     * dengan tinggi = tinggi konten aktual (bukan 297mm default driver).
+     * Ini mencegah browser membuat halaman kedua yang menyebabkan
+     * konten tercetak dua kali / terbalik.
+     */
+    @media print {
+        @page {
+            /* fallback — akan di-override JS */
+            size: {{ $pageW }} auto;
+            margin: 0;
+        }
+        html, body { margin: 0; padding: 0; }
+        pre {
+            width: {{ $printW }};
+            margin: 0;
+            padding: 2mm 1mm 6mm;
+            font-size: {{ $fsPt }};
+            font-family: monospace;
+            line-height: 1.35;
+            white-space: pre;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .no-print { display: none !important; }
     }
 </style>
+
+{{-- Style tag diinject JS untuk override @page height secara dinamis --}}
+<style id="dynamic-page-size"></style>
+
 </head>
 <body>
-<div class="wrap">
 
-    {{-- ── Header Toko ── --}}
-    <div class="store-name">{{ $receipt['store_name'] }}</div>
-    @if(!empty($receipt['store_address']))
-        <div class="store-sub">{{ $receipt['store_address'] }}</div>
-    @endif
-    @if(!empty($receipt['store_phone']))
-        <div class="store-sub">{{ $receipt['store_phone'] }}</div>
-    @endif
-
-    <div class="hr-dashed"></div>
-
-    <div class="receipt-label">Struk Pembayaran</div>
-
-    {{-- ── Meta ── --}}
-    <table>
-        <tr>
-            <td class="meta-key">Tanggal</td>
-            <td class="meta-sep">:</td>
-            <td class="meta-val">{{ $receipt['date'] }}</td>
-        </tr>
-        <tr>
-            <td class="meta-key">Kasir</td>
-            <td class="meta-sep">:</td>
-            <td class="meta-val">{{ $receipt['cashier_name'] }}</td>
-        </tr>
-        <tr>
-            <td class="meta-key">No. Struk</td>
-            <td class="meta-sep">:</td>
-            <td class="meta-val">#{{ $receipt['invoice_number'] }}</td>
-        </tr>
-    </table>
-
-    <div class="hr-solid"></div>
-
-    {{-- ── Items ── --}}
-    <table>
-        @foreach($receipt['items'] as $index => $item)
-        <tr>
-            <td class="item-name">{{ ($index + 1) }}. {{ $item['name'] }}</td>
-            <td class="item-total">Rp {{ number_format($item['total'], 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td colspan="2" class="item-detail">
-                {{ $item['qty'] }} x Rp {{ number_format($item['price'], 0, ',', '.') }}
-            </td>
-        </tr>
-        @endforeach
-    </table>
-
-    <div class="hr-dashed"></div>
-
-    {{-- ── Summary ── --}}
-    <table>
-        {{-- Subtotal + diskon (hanya tampil jika ada diskon) --}}
-        @if($receipt['discount'] > 0)
-        <tr>
-            <td class="sum-label">Subtotal</td>
-            <td class="sum-val">Rp {{ number_format($receipt['subtotal'], 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td class="sum-label">Diskon</td>
-            <td class="sum-val discount-val">- Rp {{ number_format($receipt['discount'], 0, ',', '.') }}</td>
-        </tr>
-        @endif
-    </table>
-
-    {{-- Total dengan garis tebal di atas & bawah --}}
-    <div class="hr-bold"></div>
-    <table>
-        <tr>
-            <td class="total-label">TOTAL</td>
-            <td class="total-val">Rp {{ number_format($receipt['total'], 0, ',', '.') }}</td>
-        </tr>
-    </table>
-    <div class="hr-bold"></div>
-
-    {{-- Metode bayar --}}
-    @php
-        $methodLabel = match($receipt['payment_method']) {
-            'transfer' => 'Transfer Bank',
-            'ewallet'  => 'E-Wallet',
-            default    => 'Tunai / Cash',
-        };
-    @endphp
-    <div class="method-wrap">
-        <span class="method-badge">{{ $methodLabel }}</span>
-    </div>
-
-    {{-- Dibayar & kembalian --}}
-    <table>
-        <tr>
-            <td class="sum-label">Dibayar</td>
-            <td class="sum-val">Rp {{ number_format($receipt['paid'], 0, ',', '.') }}</td>
-        </tr>
-        <tr>
-            <td class="change-label">Kembalian</td>
-            <td class="change-val">Rp {{ number_format($receipt['change'], 0, ',', '.') }}</td>
-        </tr>
-    </table>
-
-    {{-- ── Footer ── --}}
-    <div class="footer">
-        <div class="footer-note">{{ $receipt['note'] }}</div>
-        <div class="footer-wave">~ ~ ~ ~ ~</div>
-    </div>
-
+<div class="no-print">
+    <button class="btn-print" onclick="doPrint()">🖨️ Print</button>
+    <button class="btn-close" onclick="window.close()">✕ Tutup</button>
 </div>
+
+<pre id="receipt-pre">{{ $receiptText }}</pre>
+
+<script>
+    // Ukuran kertas fisik
+    var PAPER_W_MM = {{ $paperWidthMm ?? 58 }};
+
+    /**
+     * Hitung tinggi konten aktual lalu set @page size secara presisi.
+     * Dengan begitu browser tahu kertas = [lebar] x [tinggi-konten],
+     * tidak ada halaman kedua, tidak ada print ganda / terbalik.
+     */
+    function fixPageSize() {
+        var pre = document.getElementById('receipt-pre');
+        if (!pre) return;
+
+        // Tinggi konten dalam px, konversi ke mm (1px = 0.2646mm di 96dpi)
+        var heightPx = pre.scrollHeight + pre.offsetTop + 10; // +10px buffer
+        var heightMm = Math.ceil(heightPx * 0.2646) + 10;    // +10mm bottom margin
+
+        // Pastikan minimal 80mm
+        heightMm = Math.max(heightMm, 80);
+
+        var css = '@page { size: ' + PAPER_W_MM + 'mm ' + heightMm + 'mm; margin: 0; }';
+        document.getElementById('dynamic-page-size').textContent = css;
+    }
+
+    function doPrint() {
+        fixPageSize();
+        // Tunggu style diterapkan browser lalu print
+        setTimeout(function() { window.print(); }, 100);
+    }
+
+    // Auto-print saat dibuka dari modal
+    window.addEventListener('load', function () {
+        fixPageSize();
+        if (window.opener || document.referrer) {
+            setTimeout(function () { doPrint(); }, 400);
+        }
+    });
+</script>
+
 </body>
 </html>

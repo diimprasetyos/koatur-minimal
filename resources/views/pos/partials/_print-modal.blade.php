@@ -44,12 +44,12 @@
             <div class="pm-field">
                 <label class="pm-label">Ukuran Kertas</label>
                 <div class="pm-seg" id="pm-paper-seg">
-                    <button class="pm-seg-btn" data-val="58" onclick="setPaper(58)">
+                    <button class="pm-seg-btn active" data-val="58" onclick="setPaper(58)">
                         <span class="pm-seg-icon">📄</span>
                         <span class="pm-seg-main">58 mm</span>
                         <span class="pm-seg-sub">Mini thermal</span>
                     </button>
-                    <button class="pm-seg-btn active" data-val="80" onclick="setPaper(80)">
+                    <button class="pm-seg-btn" data-val="80" onclick="setPaper(80)">
                         <span class="pm-seg-icon">🧾</span>
                         <span class="pm-seg-main">80 mm</span>
                         <span class="pm-seg-sub">Thermal standar</span>
@@ -80,7 +80,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
-                <span id="pm-btn-label">Buat PDF & Cetak</span>
+                <span id="pm-btn-label">Buat Struk & Cetak</span>
             </button>
 
         </div>
@@ -382,7 +382,7 @@
 {{-- ══ Script ═══════════════════════════════════════════════════════════════ --}}
 <script>
     // ── State ────────────────────────────────────────────────────────────────────
-    let _pm_paperWidth = 80;
+    let _pm_paperWidth = 58;
 
     function openPrintModal() {
         // Reset state
@@ -402,10 +402,10 @@
         });
     }
 
-    // ── Generate PDF ─────────────────────────────────────────────────────────────
+    // ── Generate & buka struk HTML di tab baru ───────────────────────────────────
     async function generatePdf() {
         const payData = window._lastPayData;
-        const cart = window._lastCartSnap ?? [];
+        const cart    = window._lastCartSnap ?? [];
 
         if (!payData) {
             _pmSetStatus('Data transaksi tidak ditemukan.', 'error');
@@ -413,36 +413,36 @@
         }
 
         const cashier = document.getElementById('pm-cashier').value.trim();
-        const note = document.getElementById('pm-note').value.trim();
+        const note    = document.getElementById('pm-note').value.trim();
 
         _pmSetBtnLoading(true);
-        _pmSetStatus('Membuat PDF struk…', 'loading');
+        _pmSetStatus('Menyiapkan struk…', 'loading');
 
         const payload = {
-            invoice_number: payData.invoice_number,
-            total: payData.total,
-            paid: payData.paid,
-            change: payData.change,
-            payment_method: payData.payment_method ?? 'cash',
-            paper_width: _pm_paperWidth,
-            cashier_name: cashier,
-            note: note,
-            sale_id: payData.sale_id ?? null,
-            items: cart.map(c => ({
-                name: c.product.name,
-                price: c.product.price,
-                qty: c.qty,
-                total: c.product.price * c.qty,
+            invoice_number : payData.invoice_number,
+            total          : payData.total,
+            paid           : payData.paid,
+            change         : payData.change,
+            payment_method : payData.payment_method ?? 'cash',
+            paper_width    : _pm_paperWidth,
+            cashier_name   : cashier,
+            note           : note,
+            sale_id        : payData.sale_id ?? null,
+            items          : cart.map(c => ({
+                name  : c.product.name,
+                price : c.product.price,
+                qty   : c.qty,
+                total : c.product.price * c.qty,
             })),
         };
 
         try {
-            const resp = await fetch('{{ url('/pos/print/pdf') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json',
+            const resp = await fetch('{{ url('/pos/print/receipt') }}', {
+                method  : 'POST',
+                headers : {
+                    'Content-Type' : 'application/json',
+                    'X-CSRF-TOKEN' : document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept'       : 'application/json',
                 },
                 body: JSON.stringify(payload),
             });
@@ -450,46 +450,63 @@
             const data = await resp.json();
 
             if (!resp.ok || !data.success) {
-                throw new Error(data.message || 'Gagal membuat PDF.');
+                throw new Error(data.message || 'Gagal membuat struk.');
             }
 
-            // ── Buka PDF di tab baru ─────────────────────────────────────────
-            // Konversi base64 → Blob → Object URL
-            // Cara ini bekerja di semua browser + mobile (iOS Safari, Android Chrome)
-            const binary = atob(data.pdf_b64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-            const blob = new Blob([bytes], {
-                type: 'application/pdf'
-            });
+            // ── Buka HTML struk di tab baru via Blob ─────────────────────────
+            // Blob URL: tidak perlu buka tab terpisah yang mungkin diblokir popup.
+            // Konversi HTML string → Blob → Object URL → window.open
+            const blob    = new Blob([data.html], { type: 'text/html;charset=utf-8' });
             const blobUrl = URL.createObjectURL(blob);
-
-            // Buka tab baru
-            const tab = window.open(blobUrl, '_blank');
+            const tab     = window.open(blobUrl, '_blank');
 
             if (!tab) {
-                // Popup diblokir → fallback: link download
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = data.filename ?? 'struk.pdf';
-                a.click();
-                _pmSetStatus('PDF diunduh (popup diblokir browser).', 'success');
+                // Popup diblokir browser → fallback: tulis ke iframe tersembunyi lalu print
+                _pmSetStatus('Popup diblokir. Mencoba metode alternatif…', 'loading');
+                _printViaIframe(data.html);
             } else {
-                _pmSetStatus('PDF berhasil dibuat! Gunakan Ctrl+P / tombol print di browser.', 'success');
+                _pmSetStatus('Struk siap! Dialog print akan terbuka otomatis.', 'success');
             }
 
-            // Cleanup blob URL setelah 5 menit
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 300_000);
+            // Cleanup blob URL setelah 10 menit
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 600_000);
 
-            // Tutup modal setelah 2 detik
-            setTimeout(() => closePrintModal(), 2000);
+            // Tutup modal setelah 1.5 detik
+            setTimeout(() => closePrintModal(), 1500);
 
         } catch (err) {
             _pmSetStatus('❌ ' + err.message, 'error');
         } finally {
             _pmSetBtnLoading(false);
         }
+    }
+
+    // ── Fallback: print via iframe tersembunyi ────────────────────────────────
+    // Digunakan jika window.open diblokir (misalnya browser tanpa gesture user).
+    function _printViaIframe(html) {
+        // Hapus iframe lama jika ada
+        const old = document.getElementById('_print_iframe');
+        if (old) old.remove();
+
+        const iframe = document.createElement('iframe');
+        iframe.id = '_print_iframe';
+        iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(html);
+        doc.close();
+
+        // Tunggu load lalu print
+        iframe.onload = function () {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (e) {
+                _pmSetStatus('Gagal print otomatis. Coba buka di tab baru.', 'error');
+            }
+        };
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -504,7 +521,7 @@
         const icon = document.getElementById('pm-btn-icon');
         const label = document.getElementById('pm-btn-label');
         btn.disabled = loading;
-        label.textContent = loading ? 'Membuat PDF…' : 'Buat PDF & Cetak';
+        label.textContent = loading ? 'Menyiapkan…' : 'Buat Struk & Cetak';
         icon.className = loading ? 'pm-spin' : '';
         if (loading) {
             icon.innerHTML =
