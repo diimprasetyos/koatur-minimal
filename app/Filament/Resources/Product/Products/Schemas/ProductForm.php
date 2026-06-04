@@ -57,6 +57,7 @@ class ProductForm
                         FileUpload::make('image')
                             ->label('Foto Produk')
                             ->image()
+                            ->disk('public')
                             ->directory('products')
                             ->imageResizeTargetWidth('400')
                             ->nullable()

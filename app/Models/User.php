@@ -102,6 +102,11 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         return $this->hasMany(Subscription::class);
     }
 
+    public function latestSubscription(): HasOne
+    {
+        return $this->hasOne(\App\Models\Subscription\Subscription::class)->latestOfMany();
+    }
+
     /**
      * Subscription yang sedang aktif atau trial.
      * Pakai: $user->activeSubscription

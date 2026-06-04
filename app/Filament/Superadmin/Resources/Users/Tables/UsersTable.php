@@ -2,7 +2,7 @@
 
 namespace App\Filament\Superadmin\Resources\Users\Tables;
 
-use App\Models\Tenant;
+use App\Models\Subscription\Subscription;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -39,6 +39,41 @@ class UsersTable
                     ->badge()
                     ->color('warning'),
 
+                // ── Kolom Subscription ───────────────────────────────────
+                TextColumn::make('latestSubscription.plan.name')
+                    ->label('Plan')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color('info'),
+
+                TextColumn::make('latestSubscription.status')
+                    ->label('Sub. Status')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color(fn(?string $state) => match ($state) {
+                        'active'    => 'success',
+                        'trial'     => 'info',
+                        'expired'   => 'danger',
+                        'cancelled' => 'gray',
+                        default     => 'gray',
+                    })
+                    ->formatStateUsing(fn(?string $state) => match ($state) {
+                        'active'    => 'Aktif',
+                        'trial'     => 'Trial',
+                        'expired'   => 'Expired',
+                        'cancelled' => 'Dibatalkan',
+                        default     => '—',
+                    }),
+
+                TextColumn::make('latestSubscription.expires_at')
+                    ->label('Expired')
+                    ->dateTime('d M Y')
+                    ->placeholder('Lifetime')
+                    ->color(fn($state) => $state && \Carbon\Carbon::parse($state)->isPast() ? 'danger' : null)
+                    ->sortable()
+                    ->toggleable(),
+                // ────────────────────────────────────────────────────────
+
                 IconColumn::make('is_active')
                     ->label('Aktif')
                     ->boolean(),
@@ -59,6 +94,20 @@ class UsersTable
 
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif'),
+
+                // Filter status subscription
+                SelectFilter::make('subscription_status')
+                    ->label('Status Subscription')
+                    ->options([
+                        Subscription::STATUS_ACTIVE    => 'Aktif',
+                        Subscription::STATUS_TRIAL     => 'Trial',
+                        Subscription::STATUS_EXPIRED   => 'Expired',
+                        Subscription::STATUS_CANCELLED => 'Dibatalkan',
+                    ])
+                    ->query(function ($query, array $data) {
+                        if (blank($data['value'])) return;
+                        $query->whereHas('latestSubscription', fn($q) => $q->where('status', $data['value']));
+                    }),
             ])
             ->recordActions([
                 EditAction::make(),

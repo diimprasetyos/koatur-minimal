@@ -61,7 +61,7 @@ class PosController extends Controller
             'price' => (float) $p->price,
             'stock' => $p->track_stock ? $p->stock : null,
             'in_stock' => $p->isInStock(),
-            'image' => $p->image ? Storage::url($p->image) : null,
+            'image' => $p->image ? asset($p->image) : null,
             'category_id' => $p->category_id,
         ]));
     }
