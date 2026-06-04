@@ -37,5 +37,11 @@ Route::prefix('pos')->name('pos.')->group(function () {
             Route::post('/sale/{sale}/pay', [PosCashierController::class, 'processSale'])->name('sale.pay');
             Route::get('/sale/{sale}/receipt', [PosCashierController::class, 'receipt'])->name('sale.receipt');
         });
+        Route::post('/print/pdf', [\App\Http\Controllers\Pos\PrintController::class, 'pdf'])
+            ->name('pos.print.pdf');
+
+        // Opsional: reprint dari riwayat
+        Route::get('/print/pdf/{sale}', [\App\Http\Controllers\Pos\PrintController::class, 'pdfFromSale'])
+            ->name('pos.print.pdf.sale');
     });
 });
