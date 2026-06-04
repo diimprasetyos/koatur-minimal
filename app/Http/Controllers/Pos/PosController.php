@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class PosController extends Controller
@@ -60,7 +61,7 @@ class PosController extends Controller
             'price' => (float) $p->price,
             'stock' => $p->track_stock ? $p->stock : null,
             'in_stock' => $p->isInStock(),
-            'image' => $p->image ? asset('storage/' . $p->image) : null,
+            'image' => $p->image ? Storage::url($p->image) : null,
             'category_id' => $p->category_id,
         ]));
     }

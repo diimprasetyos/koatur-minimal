@@ -7,6 +7,7 @@ use App\Models\Sales\Sale;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Tenant;
 
 class PrintController extends Controller
 {
@@ -67,17 +68,23 @@ class PrintController extends Controller
     protected function buildReceiptArray(array $data): array
     {
         Carbon::setLocale('id');
+
+        $tenant = \App\Models\Tenant::find(session('pos_tenant_id'));
+
         $subtotal = collect($data['items'])->sum('total');
 
         return [
-            'store_name'     => env('POS_STORE_NAME', config('app.name', 'Kasir POS')),
-            'store_address'  => env('POS_STORE_ADDRESS', ''),
-            'store_phone'    => env('POS_STORE_PHONE', ''),
+            'store_name'    => $tenant?->name ?? config('app.name'),
+            'store_phone'   => $tenant?->phone ?? '',
+            'store_address' => $tenant?->address ?? '',
+
             'invoice_number' => $data['invoice_number'],
             'date'           => Carbon::now()->translatedFormat('d F Y, H:i'),
+
             'cashier_name'   => $data['cashier_name']
                 ?? Auth::guard('pos')->user()?->name
                 ?? '-',
+
             'items'          => $data['items'],
             'subtotal'       => $subtotal,
             'discount'       => max(0, $subtotal - $data['total']),
@@ -85,7 +92,8 @@ class PrintController extends Controller
             'paid'           => $data['paid'],
             'change'         => $data['change'],
             'payment_method' => $data['payment_method'],
-            'note'           => $data['note']
+
+            'note' => $data['note']
                 ?? env('POS_RECEIPT_NOTE', 'Terima kasih telah berbelanja!'),
         ];
     }
@@ -101,9 +109,9 @@ class PrintController extends Controller
         ])->toArray();
 
         return [
-            'store_name'     => env('POS_STORE_NAME', config('app.name', 'Kasir POS')),
-            'store_address'  => env('POS_STORE_ADDRESS', ''),
-            'store_phone'    => env('POS_STORE_PHONE', ''),
+            'store_name'     => $tenant?->name ?? config('app.name'),
+            'store_address' => $tenant?->address ?? '',
+            'store_phone'   => $tenant?->phone ?? '',
             'invoice_number' => $sale->invoice_number,
             'date'           => $sale->created_at->translatedFormat('d F Y, H:i'),
             'cashier_name'   => $sale->cashier?->name ?? '-',
