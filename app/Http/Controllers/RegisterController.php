@@ -63,7 +63,7 @@ class RegisterController extends Controller
                 $user->assignRole($ownerRole);
 
                 // buat subscription trial duration
-                Subscription::createTrial($user, trialDays: 10);
+                Subscription::createTrial($user, trialDays: 3);
             });
 
             // login setelah register
