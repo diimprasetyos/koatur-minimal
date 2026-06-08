@@ -6,6 +6,8 @@ use App\Models\Product\Product;
 use App\Models\Quotations\Quotation;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -15,6 +17,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class QuotationForm
 {
@@ -22,6 +25,34 @@ class QuotationForm
     protected static function currentTenantId(): ?int
     {
         return Filament::getTenant()?->id;
+    }
+
+    // Format angka ke Rupiah
+    protected static function rp(float $n): string
+    {
+        return 'Rp ' . number_format($n, 0, ',', '.');
+    }
+
+    // Hitung nilai subtotal
+    protected static function recalcSubtotal(Get $get, Set $set): void
+    {
+        $qty      = (float) ($get('quantity') ?? 0);
+        $price    = (float) ($get('price') ?? 0);
+        $subtotal = $qty * $price;
+
+        $set('subtotal', $subtotal);
+    }
+
+    // Hitung nilai total
+    protected static function calcTotalAmount(Get $get): float
+    {
+        $subtotal = collect($get('items') ?? [])
+            ->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
+
+        $discount = (float) ($get('discount_amount') ?? 0);
+        $tax      = (float) ($get('tax_amount') ?? 0);
+
+        return max(0, $subtotal - $discount + $tax);
     }
 
     // Ambil produk hanya milik tenant aktif — cegah manipulasi ID dari luar
@@ -40,12 +71,15 @@ class QuotationForm
     // Hitung ulang total dari items + diskon + pajak, lalu set ke form
     protected static function recalcTotals(Get $get, Set $set): void
     {
-        $items    = $get('items') ?? [];
-        $subtotal = collect($items)->sum(fn($i) => (float) ($i['quantity'] ?? 0) * (float) ($i['price'] ?? 0));
-        $discount = (float) ($get('discount_amount') ?? 0);
-        $tax      = (float) ($get('tax_amount')      ?? 0);
+        $subtotal = collect($get('items') ?? [])
+            ->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
 
-        $set('total_amount', round($subtotal - $discount + $tax, 2));
+        $discount = (float) ($get('discount_amount') ?? 0);
+        $tax      = (float) ($get('tax_amount') ?? 0);
+
+        $total = max(0, $subtotal - $discount + $tax);
+
+        $set('total_amount', $total);
     }
 
     // Susun dan kembalikan schema form lengkap
@@ -122,12 +156,16 @@ class QuotationForm
                                 ->preload()
                                 ->required()
                                 ->live()
-                                ->afterStateUpdated(function (?string $state, Set $set) {
+                                ->afterStateUpdated(function (?string $state, Get $get, Set $set) {
                                     $product = self::getProductForCurrentTenant($state);
                                     if (!$product) return;
 
+                                    $price = (float) ($product->selling_price ?? $product->price ?? 0);
+                                    $qty   = (float) ($get('quantity') ?? 1);
+
                                     $set('product_name', $product->name);
-                                    $set('price', $product->selling_price ?? $product->price ?? 0);
+                                    $set('price', $price);
+                                    $set('subtotal', $price * $qty);
                                 })
                                 ->columnSpan(3),
 
@@ -142,11 +180,9 @@ class QuotationForm
                                 ->numeric()
                                 ->prefix('Rp')
                                 ->required()
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                    $qty   = (float) ($get('quantity') ?? 0);
-                                    $price = (float) ($state ?? 0);
-                                    $set('subtotal', $qty * $price);
+                                ->live()
+                                ->afterStateUpdated(function (Get $get, Set $set) {
+                                    self::recalcSubtotal($get, $set);
                                 })
                                 ->columnSpan(2),
 
@@ -154,23 +190,27 @@ class QuotationForm
                                 ->label('Qty')
                                 ->numeric()
                                 ->required()
-                                ->minValue(1)
                                 ->default(1)
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                    $qty   = (float) ($state ?? 0);
-                                    $price = (float) ($get('price') ?? 0);
-                                    $set('subtotal', $qty * $price);
+                                ->minValue(1)
+                                ->live()
+                                ->afterStateUpdated(function (Get $get, Set $set) {
+                                    self::recalcSubtotal($get, $set);
                                 })
                                 ->columnSpan(1),
 
-                            TextInput::make('subtotal')
+                            Placeholder::make('subtotal_row')
                                 ->label('Subtotal')
-                                ->numeric()
-                                ->prefix('Rp')
-                                ->disabled()
-                                ->dehydrated(false)
+                                ->live()
+                                ->content(fn(Get $get): HtmlString => new HtmlString(
+                                    '<span class="text-sm font-medium">' .
+                                    self::rp((float) ($get('subtotal') ?? 0)) .
+                                    '</span>'
+                                ))
                                 ->columnSpan(2),
+
+                            Hidden::make('subtotal')
+                                ->default(0)
+                                ->dehydrated(),
                         ])
                         ->columns(5)
                         ->addActionLabel('Tambah Item')
@@ -187,7 +227,7 @@ class QuotationForm
                         ->numeric()
                         ->prefix('Rp')
                         ->default(0)
-                        ->live(onBlur: true)
+                        ->live()
                         ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set))
                         ->columnSpan(2),
 
@@ -196,17 +236,23 @@ class QuotationForm
                         ->numeric()
                         ->prefix('Rp')
                         ->default(0)
-                        ->live(onBlur: true)
+                        ->live()
                         ->afterStateUpdated(fn(Get $get, Set $set) => self::recalcTotals($get, $set))
                         ->columnSpan(2),
 
-                    TextInput::make('total_amount')
+                    Placeholder::make('total_amount_display')
                         ->label('Total')
-                        ->numeric()
-                        ->prefix('Rp')
-                        ->disabled()
-                        ->dehydrated()
+                        ->live()
+                        ->content(fn(Get $get): HtmlString => new HtmlString(
+                            '<span class="text-lg font-bold text-primary-600">' .
+                            self::rp(self::calcTotalAmount($get)) .
+                            '</span>'
+                        ))
                         ->columnSpan(2),
+
+                    Hidden::make('total_amount')
+                        ->dehydrated()
+                        ->default(0),
                 ]),
         ]);
     }

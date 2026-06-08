@@ -8,6 +8,7 @@ use App\Models\Purchases\Purchase;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -16,6 +17,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class PurchaseForm
 {
@@ -23,6 +25,12 @@ class PurchaseForm
     protected static function currentTenantId(): ?int
     {
         return Filament::getTenant()?->id;
+    }
+
+    // Format angka ke Rupiah
+    protected static function rp(float $n): string
+    {
+        return 'Rp ' . number_format($n, 0, ',', '.');
     }
 
     // Ambil produk hanya milik tenant aktif — cegah manipulasi ID dari luar
@@ -35,41 +43,63 @@ class PurchaseForm
             ->first();
     }
 
-    // Hitung subtotal row + update semua header totals
-    protected static function recalculateAll(Set $set, Get $get): void
+    // Jumlahkan subtotal dari semua item
+    protected static function calcSubtotal(Get $get): float
     {
-        $costPrice   = (float) ($get('cost_price') ?: 0);
-        $qty         = (int)   ($get('qty')        ?: 1);
-        $set('subtotal', $costPrice * $qty);
-
-        self::pushHeaderTotals($set, $get, '../../');
+        return (float) collect($get('items') ?? [])
+            ->sum(fn($item) => (float) ($item['subtotal'] ?? 0));
     }
 
-    // Hitung ulang header totals saja (dipanggil dari diskon, pajak, paid, atau repeater)
-    protected static function recalculateTotals(Set $set, Get $get): void
+    // Hitung nilai total keseluruhan
+    protected static function calcGrandTotal(Get $get): float
     {
-        self::pushHeaderTotals($set, $get, '');
+        $subtotal = self::calcSubtotal($get);
+        $discount = (float) ($get('discount') ?? 0);
+        $tax      = (float) ($get('tax') ?? 0);
+
+        return max(0, $subtotal - $discount + $tax);
     }
 
-    // Kalkulasi dan set field header: subtotal, total, due, payment_status
-    private static function pushHeaderTotals(Set $set, Get $get, string $prefix): void
+    // Hitung nilai sisa dibayar
+    protected static function calcDue(Get $get): float
     {
-        $items    = $get($prefix . 'items') ?? [];
-        $subtotal = collect($items)->sum(fn($i) => (float) ($i['subtotal'] ?? 0));
-        $discount = (float) ($get($prefix . 'discount') ?: 0);
-        $tax      = (float) ($get($prefix . 'tax')      ?: 0);
-        $total    = max(0, $subtotal - $discount + $tax);
-        $paid     = (float) ($get($prefix . 'paid')     ?: 0);
-        $due      = max(0, $total - $paid);
+        $total = self::calcGrandTotal($get);
+        $paid  = (float) ($get('paid') ?? 0);
 
-        $set($prefix . 'subtotal',       $subtotal);
-        $set($prefix . 'total',          $total);
-        $set($prefix . 'due',            $due);
-        $set($prefix . 'payment_status', match (true) {
-            $due <= 0 => Purchase::PAYMENT_PAID,
-            $paid > 0 => Purchase::PAYMENT_PARTIAL,
-            default   => Purchase::PAYMENT_UNPAID,
-        });
+        return max(0, $total - $paid);
+    }
+
+    // Hitung nilai kembalian
+    protected static function calcChange(Get $get): float
+    {
+        $total = self::calcGrandTotal($get);
+        $paid  = (float) ($get('paid') ?? 0);
+
+        return max(0, $paid - $total);
+    }
+
+    // Hitung dan set nilai: subtotal, total, due, payment_status
+    protected static function updatePaymentSummary(Set $set, Get $get): void
+    {
+        $subtotal = self::calcSubtotal($get);
+        $discount = (float) ($get('discount') ?? 0);
+        $tax      = (float) ($get('tax') ?? 0);
+        $paid     = (float) ($get('paid') ?? 0);
+
+        $total = max(0, $subtotal - $discount + $tax);
+        $due   = $total - $paid;
+        // $due   = max(0, $total - $paid);
+
+        $paymentStatus = match (true) {
+            $due <= 0 && $total > 0 => Purchase::PAYMENT_PAID,
+            $paid > 0               => Purchase::PAYMENT_PARTIAL,
+            default                 => Purchase::PAYMENT_UNPAID,
+        };
+
+        $set('subtotal', $subtotal);
+        $set('total', $total);
+        $set('due', $due);
+        $set('payment_status', $paymentStatus);
     }
 
     // Susun dan kembalikan schema form lengkap
@@ -183,11 +213,11 @@ class PurchaseForm
                                     $product = self::getProductForCurrentTenant($state);
                                     if (!$product) return;
 
+                                    $subtotal = ($product->cost_price ?? 0) * (int) ($get('qty') ?: 1);
+
                                     $set('cost_price',    $product->cost_price ?? 0);
                                     $set('qty_received',  0);
-                                    $set('subtotal', ($product->cost_price ?? 0) * (int) ($get('qty') ?: 1));
-
-                                    self::pushHeaderTotals($set, $get, '../../');
+                                    $set('subtotal', $subtotal);
                                 })
                                 ->columnSpan(4),
 
@@ -197,7 +227,11 @@ class PurchaseForm
                                 ->prefix('Rp')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateAll($set, $get))
+                                ->afterStateUpdated(function (Set $set, Get $get) {
+                                    $subtotal = (float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1);
+
+                                    $set('subtotal', $subtotal);
+                                })
                                 ->columnSpan(2),
 
                             TextInput::make('qty')
@@ -206,8 +240,12 @@ class PurchaseForm
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateAll($set, $get))
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, Get $get) {
+                                    $subtotal = (float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1);
+
+                                    $set('subtotal', $subtotal);
+                                })
                                 ->columnSpan(2),
 
                             TextInput::make('qty_received')
@@ -220,17 +258,20 @@ class PurchaseForm
                                 ->columnSpan(2)
                                 ->disabled(fn(Get $get) => $get('../../status') !== Purchase::STATUS_PARTIAL),
 
-                            TextInput::make('subtotal')
+                            Placeholder::make('subtotal_row')
                                 ->label('Subtotal')
-                                ->numeric()
-                                ->prefix('Rp')
-                                ->disabled()
-                                ->dehydrated()
+                                ->live()
+                                ->content(fn(Get $get): HtmlString => new HtmlString(
+                                    '<span class="text-sm font-medium">' .
+                                    self::rp((float) ($get('subtotal') ?? 0)) .
+                                    '</span>'
+                                ))
                                 ->columnSpan(2),
+
+                            Hidden::make('subtotal')->dehydrated(),
                         ])
                         ->columns(5)
                         ->live()
-                        ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateTotals($set, $get))
                         ->addActionLabel('+ Tambah Produk')
                         ->minItems(1)
                         ->defaultItems(1)
@@ -246,21 +287,23 @@ class PurchaseForm
             // ── Totals ───────────────────────────────────────────
             Section::make('Rincian Pembayaran')
                 ->schema([
-                    TextInput::make('subtotal')
+                    Placeholder::make('subtotal')
                         ->label('Subtotal')
-                        ->prefix('Rp')
-                        ->numeric()
-                        ->disabled()
-                        ->dehydrated(),
+                        ->live()
+                        ->content(fn(Get $get): HtmlString => new HtmlString(
+                            '<span class="text-lg font-bold text-primary-600">' .
+                            self::rp(self::calcSubtotal($get)) .
+                            '</span>'
+                        )),
 
                     TextInput::make('discount')
                         ->label('Diskon')
-                        ->prefix('Rp')
                         ->numeric()
+                        ->prefix('Rp')
                         ->default(0)
                         ->minValue(0)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateTotals($set, $get)),
+                        ->live()
+                        ->afterStateUpdated(fn(Get $get) => self::calcGrandTotal($get)),
 
                     TextInput::make('tax')
                         ->label('Pajak / PPN')
@@ -268,37 +311,56 @@ class PurchaseForm
                         ->numeric()
                         ->default(0)
                         ->minValue(0)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateTotals($set, $get)),
+                        ->live()
+                        ->afterStateUpdated(fn(Get $get) => self::calcGrandTotal($get)),
 
-                    TextInput::make('total')
+                    Placeholder::make('total')
                         ->label('Total')
-                        ->prefix('Rp')
-                        ->numeric()
-                        ->disabled()
-                        ->dehydrated()
-                        ->extraAttributes(['class' => 'font-bold text-lg']),
+                        ->live()
+                        ->content(fn(Get $get): HtmlString => new HtmlString(
+                            '<span class="text-lg font-bold text-primary-600">' .
+                            self::rp(self::calcGrandTotal($get)) .
+                            '</span>'
+                        )),
 
                     TextInput::make('paid')
                         ->label('Dibayar')
-                        ->prefix('Rp')
                         ->numeric()
+                        ->prefix('Rp')
                         ->default(0)
                         ->minValue(0)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn(Set $set, Get $get) => self::recalculateTotals($set, $get)),
+                        ->live(),
 
-                    TextInput::make('due')
+                    Placeholder::make('due_display')
                         ->label('Sisa Hutang')
-                        ->prefix('Rp')
-                        ->numeric()
-                        ->disabled()
-                        ->dehydrated()
-                        ->extraAttributes(['class' => 'text-red-600 font-semibold']),
+                        ->live()
+                        ->visible(fn(Get $get) => (float) ($get('paid') ?? 0) < self::calcGrandTotal($get))
+                        ->color('danger')
+                        ->content(fn(Get $get): HtmlString => new HtmlString(
+                            '<span class="text-lg font-bold">' .
+                            self::rp(self::calcDue($get)) .
+                            '</span>'
+                        )),
 
+                    Placeholder::make('change_display')
+                        ->label('Kembalian')
+                        ->live()
+                        ->visible(fn(Get $get) => (float) ($get('paid') ?? 0) > self::calcGrandTotal($get))
+                        ->color('info')
+                        ->content(fn(Get $get): HtmlString => new HtmlString(
+                            '<span class="text-lg font-bold">' .
+                            self::rp(self::calcChange($get)) .
+                            '</span>'
+                        )),
+
+                    Hidden::make('subtotal')->dehydrated(),
+                    Hidden::make('total')->dehydrated(),
+                    Hidden::make('due')->dehydrated(),
                     Hidden::make('payment_status')->dehydrated(),
                 ])
-                ->columns(3),
+                ->columns(3)
+                ->afterStateUpdated(fn(Set $set, Get $get)
+                    => self::updatePaymentSummary($set, $get)),
         ]);
     }
 }
