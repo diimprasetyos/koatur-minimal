@@ -52,3 +52,21 @@ Route::middleware('auth')->group(function () {
 Route::post('/webhook/xendit', [BillingController::class, 'xenditWebhook'])
     ->name('webhook.xendit')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+
+Route::get('/pricing', function () {
+    $plans = \App\Models\Subscription\SubscriptionPlan::active()
+        ->where('slug', '!=', 'trial')
+        ->orderBy('price')
+        ->get();
+
+    return view('landing.pricing', compact('plans'));
+})->name('pricing');
+
+// xendit test flow
+Route::prefix('checkout')->name('checkout.')->group(function () {
+    Route::get('/success', [\App\Http\Controllers\GuestCheckoutController::class, 'success'])->name('success');
+    Route::get('/failed',  [\App\Http\Controllers\GuestCheckoutController::class, 'failed'])->name('failed');
+    Route::get('/{plan}',  [\App\Http\Controllers\GuestCheckoutController::class, 'show'])->name('show');
+    Route::post('/{plan}', [\App\Http\Controllers\GuestCheckoutController::class, 'process'])->name('process');
+});

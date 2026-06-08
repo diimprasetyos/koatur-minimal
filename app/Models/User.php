@@ -30,7 +30,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         'name',
         'email',
         'password',
-        'subscription_plan', // tetap ada untuk backward compatibility
+        'subscription_plan',
         'is_active',
     ];
 

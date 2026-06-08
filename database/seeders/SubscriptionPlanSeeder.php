@@ -39,7 +39,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'slug'                 => 'basic',
                 'name'                 => 'Basic',
                 'description'          => 'Untuk UMKM dengan 1 toko',
-                'price'                => 100000,
+                'price'                => 99000, // Rp 99.000/bulan
                 'billing_cycle'        => 'monthly',
                 'max_tenants'          => 1,
                 'max_users_per_tenant' => 5,

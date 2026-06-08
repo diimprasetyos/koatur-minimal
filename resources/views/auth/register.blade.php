@@ -211,11 +211,10 @@
                     <div class="form-group">
                         <label for="phone" class="form-label">
                             Nomor Telepon
-                            <span style="color:#9ca3af; font-weight:400;">(opsional)</span>
                         </label>
                         <input type="tel" id="phone" name="phone" value="{{ old('phone') }}"
-                            placeholder="+62 812-3456-7890"
-                            class="input-field form-input">
+                            placeholder="+62 812-XXXX-XXXX"
+                            class="input-field form-input" required>
                     </div>
 
                     <!-- Password -->

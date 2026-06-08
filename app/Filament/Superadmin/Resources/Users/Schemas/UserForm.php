@@ -20,7 +20,7 @@ class UserForm
     {
         return $schema->components([
 
-            // ── Data User ────────────────────────────────────────────────
+            // Data User
             Section::make('Data User')->schema([
                 TextInput::make('name')
                     ->label('Nama')
@@ -62,7 +62,7 @@ class UserForm
                     ->default(true),
             ])->columns(2),
 
-            // ── Subscription ─────────────────────────────────────────────
+            // Subscription
             Section::make('Subscription')
                 ->description('Edit subscription user secara manual. Perubahan langsung disimpan ke tabel subscriptions.')
                 ->schema([
@@ -145,14 +145,14 @@ class UserForm
                             Subscription::STATUS_CANCELLED => 'Dibatalkan',
                         ])
                         ->nullable()
-                        ->hidden(fn(\Filament\Forms\Get $get) => !$get('subscription_plan_id')),
+                        ->hidden(fn(\Filament\Schemas\Components\Utilities\Get $get) => !$get('subscription_plan_id')),
 
                     // Tanggal mulai
                     DateTimePicker::make('subscription_started_at')
                         ->label('Mulai')
                         ->displayFormat('d/m/Y H:i')
                         ->nullable()
-                        ->hidden(fn(\Filament\Forms\Get $get) => !$get('subscription_plan_id')),
+                        ->hidden(fn(\Filament\Schemas\Components\Utilities\Get $get) => !$get('subscription_plan_id')),
 
                     // Tanggal expired
                     DateTimePicker::make('subscription_expires_at')
@@ -160,7 +160,7 @@ class UserForm
                         ->displayFormat('d/m/Y H:i')
                         ->nullable()
                         ->helperText('Kosongkan untuk lifetime / tidak ada batas')
-                        ->hidden(fn(\Filament\Forms\Get $get) => !$get('subscription_plan_id')),
+                        ->hidden(fn(\Filament\Schemas\Components\Utilities\Get $get) => !$get('subscription_plan_id')),
 
                 ])
                 ->columns(2)

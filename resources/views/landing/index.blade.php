@@ -22,6 +22,8 @@
                 <a href="{{ url('/') }}" class="text-gray-900 font-medium hover:text-blue-600 transition">Home</a>
                 <a href="#layanan" class="text-gray-600 hover:text-gray-900 transition">Layanan</a>
                 <a href="#fitur" class="text-gray-600 hover:text-gray-900 transition">Fitur</a>
+                <a href="{{ url('/pricing') }}" class="text-gray-600 hover:text-gray-900 transition">Harga</a>
+
             </nav>
 
             {{-- Desktop CTA --}}
@@ -168,48 +170,48 @@
             <div class="card overflow-hidden shadow-xl bg-gray-100 relative h-64 md:h-96">
 
                 @php
-                    $slides = [
-                        [
-                            'img' => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=400&fit=crop',
-                            'alt' => 'Laporan Penjualan Dashboard',
-                            'title' => 'Laporan Penjualan',
-                            'desc' => 'Analitik lengkap dan real-time untuk setiap transaksi',
-                        ],
-                        [
-                            'img' =>
-                                'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=400&fit=crop',
-                            'alt' => 'Manajemen Stok',
-                            'title' => 'Manajemen Stok',
-                            'desc' => 'Kelola inventori dengan mudah dan pantau stok secara real-time',
-                        ],
-                        [
-                            'img' =>
-                                'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
-                            'alt' => 'Sistem Kasir',
-                            'title' => 'Sistem Kasir Cepat',
-                            'desc' => 'Interface kasir intuitif untuk transaksi yang lebih cepat dan akurat',
-                        ],
-                        [
-                            'img' =>
-                                'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&h=400&fit=crop',
-                            'alt' => 'Multi Device Support',
-                            'title' => 'Multi Device Support',
-                            'desc' => 'Akses dari mobile, tablet, atau desktop dengan sinkronisasi otomatis',
-                        ],
-                    ];
+                $slides = [
+                [
+                'img' => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=400&fit=crop',
+                'alt' => 'Laporan Penjualan Dashboard',
+                'title' => 'Laporan Penjualan',
+                'desc' => 'Analitik lengkap dan real-time untuk setiap transaksi',
+                ],
+                [
+                'img' =>
+                'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=400&fit=crop',
+                'alt' => 'Manajemen Stok',
+                'title' => 'Manajemen Stok',
+                'desc' => 'Kelola inventori dengan mudah dan pantau stok secara real-time',
+                ],
+                [
+                'img' =>
+                'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
+                'alt' => 'Sistem Kasir',
+                'title' => 'Sistem Kasir Cepat',
+                'desc' => 'Interface kasir intuitif untuk transaksi yang lebih cepat dan akurat',
+                ],
+                [
+                'img' =>
+                'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&h=400&fit=crop',
+                'alt' => 'Multi Device Support',
+                'title' => 'Multi Device Support',
+                'desc' => 'Akses dari mobile, tablet, atau desktop dengan sinkronisasi otomatis',
+                ],
+                ];
                 @endphp
 
                 @foreach ($slides as $index => $slide)
+                <div
+                    class="carousel-slide {{ $index === 0 ? 'active' : '' }} absolute w-full h-full transition-opacity duration-500 ease-in-out">
+                    <img src="{{ $slide['img'] }}" alt="{{ $slide['alt'] }}"
+                        class="w-full h-full object-cover">
                     <div
-                        class="carousel-slide {{ $index === 0 ? 'active' : '' }} absolute w-full h-full transition-opacity duration-500 ease-in-out">
-                        <img src="{{ $slide['img'] }}" alt="{{ $slide['alt'] }}"
-                            class="w-full h-full object-cover">
-                        <div
-                            class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 md:p-6">
-                            <h3 class="text-white text-lg md:text-xl font-bold">{{ $slide['title'] }}</h3>
-                            <p class="text-white/80 text-xs md:text-sm">{{ $slide['desc'] }}</p>
-                        </div>
+                        class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 md:p-6">
+                        <h3 class="text-white text-lg md:text-xl font-bold">{{ $slide['title'] }}</h3>
+                        <p class="text-white/80 text-xs md:text-sm">{{ $slide['desc'] }}</p>
                     </div>
+                </div>
                 @endforeach
 
                 {{-- Prev Button --}}
@@ -232,9 +234,9 @@
             {{-- Carousel Dots --}}
             <div class="flex justify-center gap-2 mt-4 md:mt-6">
                 @foreach ($slides as $index => $slide)
-                    <button onclick="goToSlide({{ $index }})"
-                        class="carousel-dot {{ $index === 0 ? 'active' : '' }} w-3 h-3 rounded-full bg-gray-300 transition-all cursor-pointer hover:bg-gray-400">
-                    </button>
+                <button onclick="goToSlide({{ $index }})"
+                    class="carousel-dot {{ $index === 0 ? 'active' : '' }} w-3 h-3 rounded-full bg-gray-300 transition-all cursor-pointer hover:bg-gray-400">
+                </button>
                 @endforeach
             </div>
         </div>
@@ -261,7 +263,7 @@
                         <h3 class="text-xl font-bold">Basic Plan</h3>
                         <p class="text-sm text-gray-600 mt-1 mb-6">Untuk cafe, toko UMKM</p>
                         <div class="mb-8">
-                            <span class="text-4xl font-bold text-blue-600">Rp 100.000</span>
+                            <span class="text-4xl font-bold text-blue-600">Rp 99.000</span>
                             <span class="text-gray-600">/ Bulan</span>
                         </div>
                         <ul class="space-y-3 text-sm text-gray-700">

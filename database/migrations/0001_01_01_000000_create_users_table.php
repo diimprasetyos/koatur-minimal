@@ -21,6 +21,7 @@ return new class extends Migration {
 
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone');
             $table->string('password');
 
             $table->string('subscription_plan')->default('basic');

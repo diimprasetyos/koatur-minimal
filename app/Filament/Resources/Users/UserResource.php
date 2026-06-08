@@ -55,7 +55,7 @@ class UserResource extends Resource
         /** @var User $user */
         $user = auth()->user();
 
-        return $user?->hasAnyRole(['super_admin', 'admin']) ?? false;
+        return $user?->hasAnyRole(['super_admin', 'owner', 'admin']) ?? false;
     }
 
     public static function form(Schema $schema): Schema

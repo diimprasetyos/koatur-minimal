@@ -30,7 +30,7 @@ class RegisterController extends Controller
             'store_name'  => ['required', 'string', 'max:255'],
             'email'       => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password'    => ['required', 'confirmed', Password::min(8)],
-            'phone'       => ['nullable', 'string', 'max:20'],
+            'phone'       => ['required', 'string', 'max:20'],
         ]);
 
         try {
@@ -47,7 +47,7 @@ class RegisterController extends Controller
                 // buat Tenant (toko)
                 $tenant = Tenant::create([
                     'name'      => $validated['store_name'],
-                    'phone'     => $validated['phone'] ?? null,
+                    'phone'     => $validated['phone'],
                     'is_active' => true,
                     // slug di-generate otomatis di boot() model
                 ]);
