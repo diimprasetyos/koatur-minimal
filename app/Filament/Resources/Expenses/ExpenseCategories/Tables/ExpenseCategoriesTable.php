@@ -15,9 +15,6 @@ class ExpenseCategoriesTable
     {
         return $table
             ->columns([
-                TextColumn::make('tenant.name')
-                    ->label('Toko')
-                    ->searchable(),
                 TextColumn::make('name')
                     ->label('Nama')
                     ->searchable(),

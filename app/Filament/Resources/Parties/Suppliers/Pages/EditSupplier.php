@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Parties\Suppliers\Pages;
 
 use App\Filament\Resources\Parties\Suppliers\SupplierResource;
 use Filament\Actions\DeleteAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditSupplier extends EditRecord
@@ -15,5 +16,12 @@ class EditSupplier extends EditRecord
         return [
             DeleteAction::make(),
         ];
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $data['tenant_id'] = Filament::getTenant()->id;
+
+        return $data;
     }
 }

@@ -9,10 +9,12 @@ use App\Filament\Resources\Expenses\Expenses\Schemas\ExpenseForm;
 use App\Filament\Resources\Expenses\Expenses\Tables\ExpensesTable;
 use App\Models\Expenses\Expense;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class ExpenseResource extends Resource
@@ -25,6 +27,8 @@ class ExpenseResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Pengeluaran';
 
+    protected static ?string $tenantOwnershipRelationshipName = 'tenant';
+
     public static function getModelLabel(): string
     {
         return 'Pengeluaran';
@@ -35,7 +39,7 @@ class ExpenseResource extends Resource
         return 'Pengeluaran';
     }
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Schema $schema): Schema
     {
@@ -47,11 +51,15 @@ class ExpenseResource extends Resource
         return ExpensesTable::configure($table);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('tenant_id', Filament::getTenant()?->id);
+    }
+
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

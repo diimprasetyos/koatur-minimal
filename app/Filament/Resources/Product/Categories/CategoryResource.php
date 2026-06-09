@@ -27,6 +27,8 @@ class CategoryResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Produk';
 
+    protected static ?string $tenantOwnershipRelationshipName = 'tenant';
+
     public static function getModelLabel(): string
     {
         return 'Kategori Produk';

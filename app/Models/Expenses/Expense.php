@@ -6,7 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Expense extends Model
@@ -57,26 +57,17 @@ class Expense extends Model
         return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
     }
 
-    public function tenants(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Tenant::class,  // model Tenant
-            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
-            'id',                       // FK ke model ini di "pivot"
-            'tenant_id',                // FK ke tenant di "pivot"
-            'id',                       // PK model ini
-            'id',                       // PK tenant
-        );
-    }
-    // ─── Helpers ──────────────────────────────────────────────────
-
+    // Helpers
     public static function generateReferenceNumber(int $tenantId): string
     {
-        $date = now()->format('Ymd');
-        $count = self::whereDate('created_at', today())
-            ->where('tenant_id', $tenantId)
-            ->count() + 1;
+        return DB::transaction(function () use ($tenantId) {
+            $date = now()->format('Ymd');
+            $count = self::whereDate('created_at', today())
+                ->where('tenant_id', $tenantId)
+                ->lockForUpdate()
+                ->count() + 1;
 
-        return 'EXP-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            return 'EXP-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        });
     }
 }

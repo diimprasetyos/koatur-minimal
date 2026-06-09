@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Expenses\ExpenseCategories\Pages;
 
 use App\Filament\Resources\Expenses\ExpenseCategories\ExpenseCategoryResource;
 use Filament\Actions\DeleteAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditExpenseCategory extends EditRecord
@@ -15,5 +16,12 @@ class EditExpenseCategory extends EditRecord
         return [
             DeleteAction::make(),
         ];
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $data['tenant_id'] = Filament::getTenant()->id;
+
+        return $data;
     }
 }

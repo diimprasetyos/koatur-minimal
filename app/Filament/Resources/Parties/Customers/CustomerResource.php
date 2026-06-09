@@ -28,6 +28,8 @@ class CustomerResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Pihak';
 
+    protected static ?string $tenantOwnershipRelationshipName = 'tenant';
+
     public static function getModelLabel(): string
     {
         return 'Pelanggan';

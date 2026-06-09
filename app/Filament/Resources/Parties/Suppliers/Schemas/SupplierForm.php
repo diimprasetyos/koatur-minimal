@@ -16,9 +16,6 @@ class SupplierForm
     {
         return $schema
             ->components([
-                Hidden::make('tenant_id')
-                    ->default(fn() => Filament::getTenant()?->id)
-                    ->required(),
                 TextInput::make('name')
                     ->required(),
                 TextInput::make('code'),
@@ -31,9 +28,8 @@ class SupplierForm
                     ->columnSpanFull(),
                 TextInput::make('contact_person'),
                 TextInput::make('payable_amount')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
+                    ->disabled()
+                    ->dehydrated(false),
                 Toggle::make('is_active')
                     ->required(),
                 Textarea::make('notes')

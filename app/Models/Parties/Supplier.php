@@ -57,17 +57,6 @@ class Supplier extends Model
         return $this->hasMany(\App\Models\Return\PurchaseReturn::class);
     }
 
-    public function tenants(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Tenant::class,  // model Tenant
-            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
-            'id',                       // FK ke model ini di "pivot"
-            'tenant_id',                // FK ke tenant di "pivot"
-            'id',                       // PK model ini
-            'id',                       // PK tenant
-        );
-    }
 
     // ─── Helpers ──────────────────────────────────────────────────
 
@@ -78,6 +67,7 @@ class Supplier extends Model
 
     public function decrementPayable(float $amount): void
     {
-        $this->decrement('payable_amount', max(0, $amount));
+        $newAmount = max(0, $this->payable_amount - $amount);
+        $this->update(['payable_amount' => $newAmount]);
     }
 }

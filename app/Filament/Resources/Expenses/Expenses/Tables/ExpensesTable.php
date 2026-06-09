@@ -8,7 +8,8 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Nette\Utils\Image;
+
+// Fix: Import 'Nette\Utils\Image' yang tidak terpakai dihapus
 
 class ExpensesTable
 {
@@ -16,9 +17,7 @@ class ExpensesTable
     {
         return $table
             ->columns([
-                TextColumn::make('tenant.name')
-                    ->label('Toko')
-                    ->searchable(),
+                // Fix: Kolom tenant.name dihapus — resource sudah di-scope per tenant
                 TextColumn::make('user.name')
                     ->label('Pengguna')
                     ->searchable(),
@@ -26,7 +25,7 @@ class ExpensesTable
                     ->label('Kategori')
                     ->sortable()
                     ->badge()
-                    ->color(fn($record) => $record->expense_category?->color ?? 'gray'),
+                    ->color(fn($record) => $record->category?->color ?? 'gray'),
                 TextColumn::make('reference_number')
                     ->label('No Referensi')
                     ->searchable(),
@@ -36,6 +35,7 @@ class ExpensesTable
                 TextColumn::make('amount')
                     ->label('Jumlah')
                     ->numeric()
+                    ->money('IDR')
                     ->sortable(),
                 TextColumn::make('expense_date')
                     ->label('Tanggal Pengeluaran')

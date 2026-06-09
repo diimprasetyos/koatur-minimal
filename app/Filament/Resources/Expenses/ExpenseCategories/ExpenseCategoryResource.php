@@ -9,10 +9,12 @@ use App\Filament\Resources\Expenses\ExpenseCategories\Schemas\ExpenseCategoryFor
 use App\Filament\Resources\Expenses\ExpenseCategories\Tables\ExpenseCategoriesTable;
 use App\Models\Expenses\ExpenseCategory;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class ExpenseCategoryResource extends Resource
@@ -24,6 +26,8 @@ class ExpenseCategoryResource extends Resource
     protected static ?string $navigationLabel = 'Kategori Pengeluaran';
 
     protected static string|UnitEnum|null $navigationGroup = 'Pengeluaran';
+
+    protected static ?string $tenantOwnershipRelationshipName = 'tenant';
 
     public static function getModelLabel(): string
     {
@@ -47,11 +51,15 @@ class ExpenseCategoryResource extends Resource
         return ExpenseCategoriesTable::configure($table);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('tenant_id', Filament::getTenant()?->id);
+    }
+
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

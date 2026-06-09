@@ -9,10 +9,12 @@ use App\Filament\Resources\Parties\Suppliers\Schemas\SupplierForm;
 use App\Filament\Resources\Parties\Suppliers\Tables\SuppliersTable;
 use App\Models\Parties\Supplier;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class SupplierResource extends Resource
@@ -22,6 +24,8 @@ class SupplierResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Users;
 
     protected static ?string $navigationLabel = 'Pemasok';
+
+    protected static ?string $tenantOwnershipRelationshipName = 'tenant';
 
     protected static string|UnitEnum|null $navigationGroup = 'Pihak';
 
@@ -45,6 +49,12 @@ class SupplierResource extends Resource
     public static function table(Table $table): Table
     {
         return SuppliersTable::configure($table);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('tenant_id', Filament::getTenant()?->id);
     }
 
     public static function getRelations(): array
