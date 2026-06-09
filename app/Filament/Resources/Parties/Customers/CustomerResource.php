@@ -9,10 +9,12 @@ use App\Filament\Resources\Parties\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Parties\Customers\Tables\CustomersTable;
 use App\Models\Parties\Customer;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class CustomerResource extends Resource
@@ -54,6 +56,12 @@ class CustomerResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('tenant_id', Filament::getTenant()?->id);
     }
 
     public static function getPages(): array

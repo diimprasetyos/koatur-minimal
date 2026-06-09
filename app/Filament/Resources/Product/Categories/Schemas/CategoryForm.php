@@ -2,9 +2,7 @@
 
 namespace App\Filament\Resources\Product\Categories\Schemas;
 
-use Filament\Facades\Filament;
 use Filament\Forms\Components\ColorPicker;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -17,9 +15,6 @@ class CategoryForm
         return $schema
             ->components([
                 Section::make()->schema([
-                    Hidden::make('tenant_id')
-                        ->default(fn() => Filament::getTenant()?->id)
-                        ->required(),
                     TextInput::make('name')
                         ->label('Nama Kategori')
                         ->required()

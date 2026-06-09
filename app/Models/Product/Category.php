@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Traits\BelongsToTenant;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -36,15 +37,8 @@ class Category extends Model
         return 'uuid';
     }
 
-    public function tenants(): BelongsToMany
+    public function tenant(): BelongsTo
     {
-        return $this->belongsToMany(
-            Tenant::class,
-            $this->getTable(),
-            'id',
-            'tenant_id',
-            'id',
-            'id',
-        );
+        return $this->belongsTo(Tenant::class);
     }
 }

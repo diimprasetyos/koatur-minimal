@@ -15,9 +15,6 @@ use Illuminate\Support\Str;
 class StockAdjustment extends Model
 {
     protected $fillable = [
-        // FIX: tenant_id & user_id DIHAPUS dari fillable.
-        // Keduanya wajib diset dari server (booted/creating), bukan dari input form.
-        // Ini mencegah mass-assignment spoofing jika ada celah di layer lain.
         'uuid',
         'reference_number',
         'adjustment_date',
@@ -38,7 +35,6 @@ class StockAdjustment extends Model
     {
         static::creating(function (self $model) {
             $model->uuid             ??= Str::uuid();
-            // FIX: tenant_id & user_id selalu diambil dari sesi aktif, tidak dari input
             $model->tenant_id         = Filament::getTenant()?->id;
             $model->user_id           = auth()->id();
             $model->reference_number ??= self::generateReferenceNumber($model->tenant_id);
@@ -100,10 +96,6 @@ class StockAdjustment extends Model
         return 'ADJ-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
     }
 
-    /**
-     * Terapkan penyesuaian stok ke semua item + catat StockMovement.
-     * Dipanggil dari CreateStockAdjustment::afterCreate() atau saat status → confirmed.
-     */
     public function applyAdjustment(): void
     {
         DB::transaction(function () {
@@ -114,7 +106,6 @@ class StockAdjustment extends Model
                     continue;
                 }
 
-                // FIX: Pastikan produk memang milik tenant ini sebelum mengubah stok
                 if ((int) $product->tenant_id !== (int) $this->tenant_id) {
                     continue;
                 }

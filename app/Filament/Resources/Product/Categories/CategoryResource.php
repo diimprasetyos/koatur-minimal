@@ -9,6 +9,7 @@ use App\Filament\Resources\Product\Categories\Schemas\CategoryForm;
 use App\Filament\Resources\Product\Categories\Tables\CategoriesTable;
 use App\Models\Product\Category;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -55,6 +56,12 @@ class CategoryResource extends Resource
         ];
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('tenant_id', Filament::getTenant()?->id);
+    }
+
     public static function getPages(): array
     {
         return [
@@ -63,5 +70,4 @@ class CategoryResource extends Resource
             'edit' => EditCategory::route('/{record}/edit'),
         ];
     }
-
 }
