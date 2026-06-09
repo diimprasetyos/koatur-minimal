@@ -4,9 +4,7 @@ namespace App\Filament\Pages\Products;
 
 use App\Models\Product\Product;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Filament\Forms;
 use Filament\Schemas\Schema;
-use Filament\Forms\Components\Hidden;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -14,8 +12,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 use BackedEnum;
 use UnitEnum;
@@ -47,6 +43,8 @@ class PrintBarcode extends Page implements HasForms
 
     protected function getFormSchema(): array
     {
+        $tenantId = filament()->getTenant()?->id;
+
         return [
             Section::make('Item Produk')
                 ->schema([
@@ -61,37 +59,31 @@ class PrintBarcode extends Page implements HasForms
                                 ->live()
                                 ->options(
                                     Product::query()
+                                        ->where('tenant_id', $tenantId)
                                         ->where('is_active', true)
                                         ->pluck('name', 'id')
                                 )
-                                ->afterStateUpdated(function ($state, callable $set) {
+                                ->afterStateUpdated(function ($state, callable $set) use ($tenantId) {
                                     if (!$state) {
+                                        $set('product_sku_display', null);
                                         return;
                                     }
 
-                                    $product = Product::find($state);
+                                    $product = Product::where('id', $state)
+                                        ->where('tenant_id', $tenantId)
+                                        ->where('is_active', true)
+                                        ->select(['id', 'name', 'sku'])
+                                        ->first();
 
-                                    if (!$product) {
-                                        return;
-                                    }
-
-                                    $set('product_name', $product->name);
-                                    $set('product_code', $product->sku);
+                                    $set('product_sku_display', $product?->sku);
                                 }),
 
-                            Hidden::make('product_name'),
-
-                            Hidden::make('product_code'),
-
-                            TextInput::make('product_code')
+                            TextInput::make('product_sku_display')
                                 ->label('Kode Produk')
                                 ->disabled()
                                 ->dehydrated(false)
-                                ->reactive()
-                                ->formatStateUsing(function ($state, callable $get) {
-                                    return $get('product_code');
-                                }),
-                                
+                                ->live(),
+
                             TextInput::make('barcode_qty')
                                 ->label('Qty Barcode')
                                 ->numeric()
@@ -117,33 +109,54 @@ class PrintBarcode extends Page implements HasForms
             return;
         }
 
+        $tenantId = filament()->getTenant()?->id;
+
+        $productIds = collect($items)
+            ->pluck('product_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($productIds)) {
+            return;
+        }
+
+        $productMap = Product::whereIn('id', $productIds)
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->select(['id', 'name', 'sku'])
+            ->get()
+            ->keyBy('id');
+
         $products = [];
 
         foreach ($items as $item) {
+            $productId = $item['product_id'] ?? null;
 
-            $product = Product::find($item['product_id']);
-
-            if (!$product) {
+            if (!$productId || !isset($productMap[$productId])) {
                 continue;
             }
 
             $products[] = [
-                'product' => $product,
-                'barcode_qty' => max(1, (int) $item['barcode_qty']),
+                'product'     => $productMap[$productId],
+                'barcode_qty' => max(1, (int) ($item['barcode_qty'] ?? 1)),
             ];
+        }
+
+        if (empty($products)) {
+            return;
         }
 
         $pdf = Pdf::loadView(
             'filament.pages.products.pdf.barcode',
-            [
-                'products' => $products,
-            ]
+            ['products' => $products]
         )->setPaper('a4');
 
         $filename = 'barcode-' . now()->format('YmdHis') . '.pdf';
 
         return response()->streamDownload(
-            fn () => print($pdf->output()),
+            fn() => print($pdf->output()),
             $filename
         );
     }
