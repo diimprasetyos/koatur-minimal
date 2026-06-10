@@ -1,227 +1,125 @@
 @php
     $paperWidthMm = (int) ($paperWidthMm ?? env('POS_PAPER_WIDTH', 58));
-    $isNarrow = $paperWidthMm <= 58;
-    $pageW = $isNarrow ? '58mm' : '80mm';
-    $cols = $isNarrow ? 28 : 42;
-    $fsPt = $isNarrow ? '8pt' : '9pt';
+    $pageW        = $paperWidthMm <= 58 ? '58mm' : '80mm';
 
-    function strRow(string $left, string $right, int $width): string
-    {
-        $rLen = mb_strlen($right);
-        $left = mb_substr($left, 0, $width - $rLen - 1);
-        $space = $width - mb_strlen($left) - $rLen;
-        return $left . str_repeat(' ', max(1, $space)) . $right;
-    }
-    function strLine(int $width, string $char = '-'): string
-    {
-        return str_repeat($char, $width);
-    }
-    function strCenter(string $text, int $width): string
-    {
-        $len = mb_strlen($text);
-        if ($len >= $width) {
-            return $text;
-        }
-        return str_repeat(' ', intdiv($width - $len, 2)) . $text;
-    }
-    function rpFmt(float $n): string
-    {
+    function rpFmt(float $n): string {
         return 'Rp ' . number_format($n, 0, ',', '.');
     }
 
-    $lines = [];
-
-    foreach (explode("\n", wordwrap(mb_strtoupper($receipt['store_name']), $cols, "\n", true)) as $l) {
-        $lines[] = strCenter($l, $cols);
-    }
-    if (!empty($receipt['store_address'])) {
-        foreach (explode("\n", wordwrap($receipt['store_address'], $cols, "\n", true)) as $l) {
-            $lines[] = strCenter($l, $cols);
-        }
-    }
-    if (!empty($receipt['store_phone'])) {
-        $lines[] = strCenter($receipt['store_phone'], $cols);
-    }
-
-    $lines[] = strLine($cols, '-');
-    $lines[] = strCenter('STRUK PEMBAYARAN', $cols);
-    $lines[] = strLine($cols, '-');
-
-    foreach (
-        [
-            'Tanggal' => $receipt['date'],
-            'Kasir' => $receipt['cashier_name'],
-            'No.' => '#' . $receipt['invoice_number'],
-        ]
-        as $key => $val
-    ) {
-        if (mb_strlen($key) + 1 + mb_strlen($val) > $cols) {
-            $lines[] = $key;
-            foreach (explode("\n", wordwrap($val, $cols, "\n", true)) as $vl) {
-                $lines[] = '  ' . $vl;
-            }
-        } else {
-            $lines[] = strRow($key, $val, $cols);
-        }
-    }
-
-    $lines[] = strLine($cols, '-');
-
-    foreach ($receipt['items'] as $i => $item) {
-        $totalStr = rpFmt((float) $item['total']);
-        $maxNW = $cols - mb_strlen($totalStr) - 1;
-        $nameLines = explode("\n", wordwrap($i + 1 . '. ' . $item['name'], $maxNW, "\n", true));
-        $lines[] = strRow(mb_substr($nameLines[0], 0, $maxNW), $totalStr, $cols);
-        for ($j = 1; $j < count($nameLines); $j++) {
-            $lines[] = '   ' . $nameLines[$j];
-        }
-        $lines[] = '   ' . $item['qty'] . ' x ' . rpFmt((float) $item['price']);
-    }
-
-    $lines[] = strLine($cols, '-');
-
-    if ((float) $receipt['discount'] > 0) {
-        $lines[] = strRow('Subtotal', rpFmt((float) $receipt['subtotal']), $cols);
-        $lines[] = strRow('Diskon', '- ' . rpFmt((float) $receipt['discount']), $cols);
-        $lines[] = strLine($cols, '-');
-    }
-
-    $lines[] = strLine($cols, '=');
-    $lines[] = strRow('TOTAL', rpFmt((float) $receipt['total']), $cols);
-    $lines[] = strLine($cols, '=');
-
     $methodLabel = match ($receipt['payment_method']) {
         'transfer' => 'TRANSFER BANK',
-        'ewallet' => 'E-WALLET',
-        default => 'TUNAI / CASH',
+        'ewallet'  => 'E-WALLET',
+        default    => 'CASH',
     };
-    $lines[] = strCenter('[ ' . $methodLabel . ' ]', $cols);
-    $lines[] = strRow('Dibayar', rpFmt((float) $receipt['paid']), $cols);
-    $lines[] = strRow('Kembalian', rpFmt((float) $receipt['change']), $cols);
-    $lines[] = strLine($cols, '-');
-
-    $lines[] = strCenter('Terima kasih telah berbelanja', $cols);
-
-    $receiptText = implode("\n", $lines);
 @endphp
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk #{{ $receipt['invoice_number'] }}</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        html,
-        body {
+        html, body {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 8pt;
+            line-height: 1.3;
             background: #fff;
             color: #000;
-            margin: 0;
-            padding: 0;
         }
 
-        pre {
-            width: 100%;
-            margin: 0;
-            padding: 1mm;
-            font-family: "Courier New", monospace;
-            font-size: 8pt;
-            line-height: 1.1;
-            margin: 0;
-            padding: 1mm;
-            white-space: pre;
+        @media screen {
+            body { display:flex; justify-content:center; padding:20px; background:#ddd; }
+            .receipt { background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.2); }
         }
 
-        .no-print {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 999;
-            display: flex;
-            gap: 8px;
-            font-family: sans-serif;
+        .receipt {
+            width: {{ $pageW }};
+            padding: 2mm 0 6mm;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
-        .btn-print {
-            background: #2563EB;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
+        .receipt div {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
-        .btn-close {
-            background: #fff;
-            color: #555;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 8px 14px;
-            font-size: 14px;
-            cursor: pointer;
-        }
+        .center { text-align: center; }
+        .bold   { font-weight: bold; }
+        .mt     { margin-top: 2mm; }
+        .indent { padding-left: 4mm; }
 
         @media print {
-
-            @page {
-                size: {{ $pageW }} auto;
-                margin: 0;
-            }
-
-            html,
-            body {
-                margin: 0;
-                padding: 0;
+            @page { size: {{ $pageW }} auto; margin: 0; }
+            html, body { width: {{ $pageW }}; margin: 0; padding: 0; }
+            .receipt {
                 width: {{ $pageW }};
+                padding: 0 0 6mm;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                word-break: break-word;
             }
-
-            pre {
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                font-family: Consolas, "Courier New", monospace;
-                font-size: 9pt;
-                line-height: 1.0;
-                white-space: pre;
-                overflow: hidden;
-                page-break-inside: avoid;
-                break-inside: avoid;
-            }
-
-            .no-print {
-                display: none !important;
-            }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
-
 <body>
 
-    <div class="no-print">
-        <button class="btn-print" onclick="window.print()">🖨️ Print</button>
-        <button class="btn-close" onclick="window.close()">✕ Tutup</button>
-    </div>
+<div class="no-print" style="position:fixed;top:10px;right:10px;z-index:99;display:flex;gap:8px;font-family:sans-serif">
+    <button onclick="window.print()" style="background:#2563EB;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer">🖨️ Print</button>
+    <button onclick="window.close()" style="background:#fff;color:#555;border:1px solid #ddd;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer">✕ Tutup</button>
+</div>
 
-    <pre id="receipt-pre">{{ $receiptText }}</pre>
+<div class="receipt">
 
-    <script>
-        window.addEventListener('load', function() {
-            if (window.opener || document.referrer) {
-                setTimeout(function() {
-                    window.print();
-                }, 300);
-            }
-        });
-    </script>
+    <div class="center bold">{{ strtoupper($receipt['store_name']) }}</div>
+    @if (!empty($receipt['store_address']))
+        <div class="center">{{ $receipt['store_address'] }}</div>
+    @endif
+    @if (!empty($receipt['store_phone']))
+        <div class="center">{{ $receipt['store_phone'] }}</div>
+    @endif
 
+    <div class="mt">Tanggal: {{ $receipt['date'] }}</div>
+    <div>Kasir: {{ $receipt['cashier_name'] }}</div>
+    <div>ID: #{{ $receipt['invoice_number'] }}</div>
+
+    <div class="mt"></div>
+
+    @foreach ($receipt['items'] as $i => $item)
+        <div>{{ $i + 1 }}. {{ $item['name'] }}</div>
+        <div class="indent">{{ $item['qty'] }} x {{ rpFmt((float) $item['price']) }}</div>
+        <div class="indent">= {{ rpFmt((float) $item['total']) }}</div>
+    @endforeach
+
+    <div class="mt"></div>
+
+    @if ((float) ($receipt['discount'] ?? 0) > 0)
+        <div>Subtotal: {{ rpFmt((float) $receipt['subtotal']) }}</div>
+        <div>Diskon: -{{ rpFmt((float) $receipt['discount']) }}</div>
+    @endif
+
+    <div class="bold">Total: {{ rpFmt((float) $receipt['total']) }}</div>
+    <div>Bayar ({{ $methodLabel }}): {{ rpFmt((float) $receipt['paid']) }}</div>
+    <div>Kembalian: {{ rpFmt((float) $receipt['change']) }}</div>
+
+    <div class="mt"></div>
+    <div>{{ $receipt['footer_note'] ?? 'Terimakasih Telah Berbelanja' }}</div>
+
+</div>
+
+<script>
+var _p = false;
+window.addEventListener('load', function () {
+    if (_p) return;
+    if (window.opener || document.referrer) {
+        _p = true;
+        setTimeout(function () { window.print(); }, 400);
+    }
+});
+</script>
 </body>
-
 </html>
