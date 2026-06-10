@@ -38,6 +38,30 @@ class Product extends Model
         'is_active' => 'boolean',
     ];
 
+    // ─── Auto-generate SKU ────────────────────────────────────────
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (self $product) {
+            if (empty($product->sku)) {
+                $product->sku = static::generateSku();
+            }
+        });
+    }
+
+    public static function generateSku(): string
+    {
+        do {
+            $sku = 'PRD-' . strtoupper(substr(uniqid(), -6));
+        } while (static::where('sku', $sku)->exists());
+
+        return $sku;
+    }
+
+    // ─── Stock Helpers ────────────────────────────────────────────
+
     public function isInStock(): bool
     {
         return !$this->track_stock || $this->stock > 0;
@@ -57,6 +81,8 @@ class Product extends Model
         }
     }
 
+    // ─── Relationships ────────────────────────────────────────────
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
@@ -75,12 +101,12 @@ class Product extends Model
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(
-            Tenant::class,  // model Tenant
-            $this->getTable(),          // pakai tabel model itu sendiri sebagai "pivot"
-            'id',                       // FK ke model ini di "pivot"
-            'tenant_id',                // FK ke tenant di "pivot"
-            'id',                       // PK model ini
-            'id',                       // PK tenant
+            Tenant::class,
+            $this->getTable(),
+            'id',
+            'tenant_id',
+            'id',
+            'id',
         );
     }
 }

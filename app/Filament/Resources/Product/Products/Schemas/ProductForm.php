@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Product\Products\Schemas;
 
 use App\Models\Product\Category;
+use App\Models\Product\Product;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -26,6 +27,7 @@ class ProductForm
                         Hidden::make('tenant_id')
                             ->default(fn() => Filament::getTenant()?->id)
                             ->required(),
+
                         TextInput::make('name')
                             ->label('Nama Produk')
                             ->required()
@@ -46,7 +48,20 @@ class ProductForm
                             ->label('SKU / Kode Produk')
                             ->maxLength(50)
                             ->nullable()
-                            ->placeholder('Kosongkan untuk generate otomatis'),
+                            ->placeholder('Kosongkan untuk generate otomatis')
+                            ->helperText(function ($record) {
+                                // Saat edit: tampilkan SKU aktif agar user tahu nilainya
+                                if ($record && $record->sku) {
+                                    return 'SKU saat ini: ' . $record->sku . '. Kosongkan hanya jika ingin di-reset.';
+                                }
+                                return 'SKU akan di-generate otomatis jika dikosongkan (contoh: PRD-A1B2C3).';
+                            })
+                            ->afterStateHydrated(function ($state, $set, $record) {
+                                // Saat edit: pastikan field terisi dari data yang ada
+                                if ($record && empty($state)) {
+                                    $set('sku', $record->sku);
+                                }
+                            }),
 
                         Textarea::make('description')
                             ->label('Deskripsi')
