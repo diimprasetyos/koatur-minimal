@@ -15,7 +15,9 @@ class CustomerForm
             ->components([
                 TextInput::make('name')
                     ->required(),
-                TextInput::make('code'),
+                TextInput::make('code')
+                    ->disabled()
+                    ->helperText('Kode pelanggan dibuat otomatis oleh sistem.'),
                 TextInput::make('phone')
                     ->tel(),
                 TextInput::make('email')

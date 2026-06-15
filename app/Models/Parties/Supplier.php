@@ -36,7 +36,34 @@ class Supplier extends Model
     protected static function booted(): void
     {
         static::creating(function (self $model) {
+            // UUID
             $model->uuid ??= Str::uuid();
+
+            // Tenant
+            $model->tenant_id ??= Filament::getTenant()->id;
+
+            // Code
+            if (empty($model->code)) {
+
+                $lastCode = self::query()
+                    ->where('tenant_id', $model->tenant_id)
+                    ->whereNotNull('code')
+                    ->latest('id')
+                    ->value('code');
+
+                $nextNumber = 1;
+
+                if ($lastCode) {
+                    $parts = explode('-', $lastCode);
+                    $nextNumber = ((int) end($parts)) + 1;
+                }
+
+                $model->code = sprintf(
+                    'SUP-%d-%03d',
+                    $model->tenant_id,
+                    $nextNumber
+                );
+            }
         });
     }
 

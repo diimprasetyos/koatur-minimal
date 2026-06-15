@@ -18,7 +18,9 @@ class SupplierForm
             ->components([
                 TextInput::make('name')
                     ->required(),
-                TextInput::make('code'),
+                TextInput::make('code')
+                    ->disabled()
+                    ->helperText('Kode pemasok dibuat otomatis oleh sistem.'),
                 TextInput::make('phone')
                     ->tel(),
                 TextInput::make('email')
