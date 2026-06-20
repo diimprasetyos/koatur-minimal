@@ -28,6 +28,10 @@ class UsersTable
                     ->searchable()
                     ->copyable(),
 
+                TextColumn::make('phone')
+                    ->label('Phone')
+                    ->searchable(),
+
                 TextColumn::make('tenants.name')
                     ->label('Tenant')
                     ->placeholder('- Super Admin - ')
