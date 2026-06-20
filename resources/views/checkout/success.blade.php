@@ -96,8 +96,8 @@
     <div class="card">
         <div class="icon-wrap">✓</div>
         <h1>Pembayaran Berhasil!</h1>
-        <p>Terima kasih! Pembayaran Anda telah kami terima. Langganan Anda akan segera aktif. Cek email untuk konfirmasi.</p>
-        <a href="{{ url('/register') }}" class="btn">Buat Akun Sekarang</a>
+        <p>Terima kasih! Pembayaran Anda telah kami terima dan akun Anda sudah aktif. Silakan login menggunakan email & password yang tadi Anda buat.</p>
+        <a href="{{ url('/admin/login') }}" class="btn">Login ke Akun Saya</a>
         <br>
         <a href="{{ url('/') }}" class="btn-ghost">← Kembali ke Beranda</a>
     </div>

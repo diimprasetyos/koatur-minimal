@@ -63,10 +63,10 @@ Route::get('/pricing', function () {
     return view('landing.pricing', compact('plans'));
 })->name('pricing');
 
-// xendit test flow
+// Checkout publik — pilih produk, buat akun (atau pakai akun lama), lalu bayar
 Route::prefix('checkout')->name('checkout.')->group(function () {
-    Route::get('/success', [\App\Http\Controllers\GuestCheckoutController::class, 'success'])->name('success');
-    Route::get('/failed',  [\App\Http\Controllers\GuestCheckoutController::class, 'failed'])->name('failed');
-    Route::get('/{plan}',  [\App\Http\Controllers\GuestCheckoutController::class, 'show'])->name('show');
-    Route::post('/{plan}', [\App\Http\Controllers\GuestCheckoutController::class, 'process'])->name('process');
+    Route::get('/success', [\App\Http\Controllers\CheckoutController::class, 'success'])->name('success');
+    Route::get('/failed',  [\App\Http\Controllers\CheckoutController::class, 'failed'])->name('failed');
+    Route::get('/{plan}',  [\App\Http\Controllers\CheckoutController::class, 'show'])->name('show');
+    Route::post('/{plan}', [\App\Http\Controllers\CheckoutController::class, 'process'])->name('process');
 });

@@ -464,26 +464,11 @@
         </div>
     </nav>
 
-    {{-- ── Trial strip ── --}}
-    <div class="trial-strip">
-        <p>🎁 Daftar sekarang dan nikmati <strong>3 hari trial gratis</strong> — tanpa kartu kredit</p>
-        <small>Upgrade atau batalkan kapan saja</small>
-    </div>
-
     {{-- ── Hero ── --}}
     <div class="hero">
-        <span class="hero-badge">Harga Transparan, Tanpa Biaya Tersembunyi</span>
         <h1>Pilih Paket yang <span>Tepat</span><br>untuk Bisnis Anda</h1>
         <p>Mulai gratis, upgrade saat bisnis Anda berkembang. Semua paket sudah termasuk modul kasir lengkap.</p>
 
-        {{-- Billing toggle --}}
-        <div class="toggle-wrap">
-            <span class="toggle-label active" id="label-monthly">Bulanan</span>
-            <div class="toggle" id="billing-toggle" onclick="toggleBilling()"></div>
-            <span class="toggle-label" id="label-yearly">
-                Tahunan <span class="badge-save">Hemat 20%</span>
-            </span>
-        </div>
     </div>
 
     {{-- ── Plan Cards ── --}}
@@ -547,7 +532,6 @@
                 </li>
             </ul>
 
-            {{-- Jika sudah login, langsung ke billing checkout. Jika belum, ke register. --}}
             @auth
             <form action="{{ route('billing.checkout') }}" method="POST">
                 @csrf
@@ -558,7 +542,7 @@
             </form>
             @else
             <a href="{{ url('/checkout/' . $plan->slug) }}" class="btn-checkout {{ $plan->slug === 'pro' ? 'primary' : 'secondary' }}">
-                Mulai Gratis 3 Hari
+                Berlangganan Sekarang
             </a>
             @endauth
         </div>
@@ -604,43 +588,9 @@
             <a href="mailto:pilarpasificcode@gmail.com">pilarpasificcode@gmail.com</a> ·
             <a href="tel:+6281247758775">+62 812 4775 8775</a>
         </p>
-        <p style="margin-top:8px;">
-            <a href="{{ url('/') }}">Home</a> &nbsp;·&nbsp;
-            <a href="{{ url('/register') }}">Daftar</a> &nbsp;·&nbsp;
-            <a href="{{ route('filament.admin.auth.login') }}">Login</a>
-        </p>
     </footer>
 
     <script>
-        // ── Billing toggle ──
-        let isYearly = false;
-
-        function toggleBilling() {
-            isYearly = !isYearly;
-            const toggle = document.getElementById('billing-toggle');
-            const labelM = document.getElementById('label-monthly');
-            const labelY = document.getElementById('label-yearly');
-
-            toggle.classList.toggle('yearly', isYearly);
-            labelM.classList.toggle('active', !isYearly);
-            labelY.classList.toggle('active', isYearly);
-
-            // Update harga tiap plan (20% discount kalau tahunan)
-            const prices = @json($plans -> mapWithKeys(fn($p) => [$p -> slug => $p -> price]));
-            for (const [slug, monthly] of Object.entries(prices)) {
-                const el = document.getElementById('price-' + slug);
-                if (!el || monthly === 0) continue;
-
-                if (isYearly) {
-                    const yearly = Math.round(monthly * 12 * 0.8);
-                    el.innerHTML = 'Rp ' + yearly.toLocaleString('id-ID') + '<span> / tahun</span>';
-                } else {
-                    el.innerHTML = 'Rp ' + monthly.toLocaleString('id-ID') + '<span> / bulan</span>';
-                }
-            }
-        }
-
-        // ── FAQ accordion ──
         function toggleFaq(i) {
             const item = document.getElementById('faq-' + i);
             const isOpen = item.classList.contains('open');

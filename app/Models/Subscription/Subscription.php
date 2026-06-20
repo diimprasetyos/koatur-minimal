@@ -31,6 +31,7 @@ class Subscription extends Model
     const STATUS_ACTIVE    = 'active';
     const STATUS_EXPIRED   = 'expired';
     const STATUS_CANCELLED = 'cancelled';
+    const STATUS_PENDING   = 'pending';
 
     // ─── Relations ───────────────────────────────────────────────
 

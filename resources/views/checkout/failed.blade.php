@@ -96,7 +96,7 @@
     <div class="card">
         <div class="icon-wrap">✗</div>
         <h1>Pembayaran Gagal</h1>
-        <p>Pembayaran tidak berhasil diproses atau dibatalkan. Tidak ada dana yang ditarik. Silakan coba lagi.</p>
+        <p>Pembayaran tidak berhasil diproses atau dibatalkan. Tidak ada dana yang ditarik. Akun Anda tetap tersimpan — silakan coba bayar lagi.</p>
         <a href="{{ url('/pricing') }}" class="btn">Coba Lagi</a>
         <br>
         <a href="{{ url('/') }}" class="btn-ghost">← Kembali ke Beranda</a>

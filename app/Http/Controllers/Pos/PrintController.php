@@ -37,8 +37,6 @@ class PrintController extends Controller
         $receipt = $this->buildReceiptArray($validated);
         $paperWidthMm = (int) ($validated['paper_width'] ?? env('POS_PAPER_WIDTH', 58));
 
-        // Render HTML → kirim sebagai string (bukan view response)
-        // JS akan buka di tab baru via Blob URL
         $html = view('pos.print.receipt', compact('receipt', 'paperWidthMm'))->render();
 
         return response()->json([

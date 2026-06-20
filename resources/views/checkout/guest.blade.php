@@ -283,22 +283,9 @@
 </head>
 
 <body>
-
-    <div class="topbar">
-        <a href="{{ url('/') }}" class="logo">{{ config('app.name') }}</a>
-        <div class="topbar-secure">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0110 0v4" />
-            </svg>
-            Pembayaran aman via Xendit
-        </div>
-    </div>
-
     <div class="page">
         <div class="checkout-wrap">
 
-            {{-- ── Kiri: Form ── --}}
             <div>
                 <a href="{{ url('/pricing') }}" class="back-link">
                     ← Kembali ke halaman harga
@@ -332,27 +319,29 @@
                         </div>
 
                         <div class="field">
+                            <label for="password">Password <span style="color:#ef4444">*</span></label>
+                            <input type="password" id="password" name="password"
+                                placeholder="Minimal 8 karakter"
+                                class="{{ $errors->has('password') ? 'error' : '' }}" required minlength="8">
+                            @error('password')<p class="err-msg">{{ $message }}</p>@enderror
+                            <p style="font-size:12px;color:#94a3b8;margin-top:6px;">
+                                Sudah punya akun? Masukkan password akun kamu untuk lanjut bayar dengan akun yang sama.
+                            </p>
+                        </div>
+
+                        <div class="field">
                             <label for="phone">Nomor WhatsApp <span style="color:#94a3b8;font-weight:400;">(opsional)</span></label>
                             <input type="tel" id="phone" name="phone" value="{{ old('phone') }}"
-                                placeholder="+62 812-XXXX-XXXX">
+                                placeholder="0812-XXXX-XXXX">
                         </div>
 
                         <button type="submit" class="btn-pay" id="payBtn">
-                            Lanjut ke Pembayaran →
+                            Buat Akun & Lanjut ke Pembayaran →
                         </button>
-
-                        <p class="secure-note">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <rect x="3" y="11" width="18" height="11" rx="2" />
-                                <path d="M7 11V7a5 5 0 0110 0v4" />
-                            </svg>
-                            SSL 256-bit · Diproses aman oleh Xendit
-                        </p>
                     </form>
                 </div>
             </div>
 
-            {{-- ── Kanan: Order Summary ── --}}
             <div class="card">
                 <div class="summary-label">Ringkasan Pesanan</div>
 
@@ -370,22 +359,6 @@
                 <div class="price-row">
                     <span class="label">Total</span>
                     <span class="val" style="color:#2563eb;">Rp {{ number_format($plan->price, 0, ',', '.') }}</span>
-                </div>
-
-                <ul class="feature-list">
-                    <li>{{ $plan->max_tenants }} outlet / toko</li>
-                    <li>{{ $plan->max_users_per_tenant }} pengguna per toko</li>
-                    <li>{{ $plan->max_products > 0 ? number_format($plan->max_products).' produk' : 'Produk tidak terbatas' }}</li>
-                    <li>Modul kasir & manajemen stok</li>
-                    <li>Laporan harian & bulanan</li>
-                    @if ($plan->hasFeature('export'))
-                    <li>Export laporan (Excel/PDF)</li>
-                    @endif
-                </ul>
-
-                <div class="trial-badge">
-                    🎁 Atau <a href="{{ url('/register') }}" style="color:#2563eb;font-weight:700;">daftar dulu</a>
-                    dan nikmati <strong>10 hari trial gratis</strong> sebelum berlangganan.
                 </div>
             </div>
 
