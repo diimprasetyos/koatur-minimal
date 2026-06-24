@@ -12,6 +12,9 @@ class CreatePurchase extends CreateRecord
 
     protected function afterCreate(): void
     {
+        $this->record->refresh();
+        $this->record->recalculate();
+
         if ($this->record->status === Purchase::STATUS_RECEIVED) {
             $this->record->load('items.product');
             $this->record->receiveStock();

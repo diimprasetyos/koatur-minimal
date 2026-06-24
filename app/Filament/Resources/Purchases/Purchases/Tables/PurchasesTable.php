@@ -63,7 +63,9 @@ class PurchasesTable
                 TextColumn::make('due')
                     ->label('Hutang')
                     ->money('IDR')
-                    ->color(fn($state) => $state > 0 ? 'danger' : 'success')
+                    ->color(fn ($state) => $state > 0
+                        ? 'danger'
+                        : ($state == 0 ? 'info' : 'success'))
                     ->sortable(),
 
                 TextColumn::make('status')

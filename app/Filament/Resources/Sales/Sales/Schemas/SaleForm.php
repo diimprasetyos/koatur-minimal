@@ -77,7 +77,7 @@ class SaleForm
         $paid     = (float) ($get('paid') ?? 0);
 
         $total = max(0, $subtotal - $discount + $tax);
-        $change   = $paid - $total;
+        $change   = max(0,$paid - $total);
 
         $status = match (true) {
             $change == 0 && $total > 0       => Sale::STATUS_PAID,

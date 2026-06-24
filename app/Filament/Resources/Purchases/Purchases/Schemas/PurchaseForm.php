@@ -87,8 +87,8 @@ class PurchaseForm
         $paid     = (float) ($get('paid') ?? 0);
 
         $total = max(0, $subtotal - $discount + $tax);
-        $due   = $total - $paid;
-        // $due   = max(0, $total - $paid);
+        // $due   = $total - $paid;
+        $due   = max(0, $total - $paid);
 
         $paymentStatus = match (true) {
             $due <= 0 && $total > 0 => Purchase::PAYMENT_PAID,
@@ -100,6 +100,32 @@ class PurchaseForm
         $set('total', $total);
         $set('due', $due);
         $set('payment_status', $paymentStatus);
+    }
+
+    protected static function refreshTotals(Set $set, Get $get): void
+    {
+        $items = $get('../../items') ?? [];
+
+        $subtotal = collect($items)
+            ->sum(fn ($item) => (float) ($item['subtotal'] ?? 0));
+
+        $discount = (float) ($get('../../discount') ?? 0);
+        $tax      = (float) ($get('../../tax') ?? 0);
+        $paid     = (float) ($get('../../paid') ?? 0);
+
+        $total = max(0, $subtotal - $discount + $tax);
+        $due   = max(0, $total - $paid);
+
+        $paymentStatus = match (true) {
+            $due <= 0 && $total > 0 => Purchase::PAYMENT_PAID,
+            $paid > 0               => Purchase::PAYMENT_PARTIAL,
+            default                 => Purchase::PAYMENT_UNPAID,
+        };
+
+        $set('../../subtotal', $subtotal);
+        $set('../../total', $total);
+        $set('../../due', $due);
+        $set('../../payment_status', $paymentStatus);
     }
 
     // Susun dan kembalikan schema form lengkap
@@ -196,6 +222,7 @@ class PurchaseForm
                     Repeater::make('items')
                         ->label('')
                         ->relationship()
+                        ->live(debounce: 300)
                         ->schema([
                             Select::make('product_id')
                                 ->label('Produk')
@@ -213,11 +240,13 @@ class PurchaseForm
                                     $product = self::getProductForCurrentTenant($state);
                                     if (!$product) return;
 
-                                    $subtotal = ($product->cost_price ?? 0) * (int) ($get('qty') ?: 1);
+                                    $rowSubtotal = ($product->cost_price ?? 0) * (int) ($get('qty') ?: 1);
 
                                     $set('cost_price',    $product->cost_price ?? 0);
                                     $set('qty_received',  0);
-                                    $set('subtotal', $subtotal);
+                                    $set('subtotal', $rowSubtotal);
+
+                                    self::refreshTotals($set, $get);
                                 })
                                 ->columnSpan(4),
 
@@ -228,9 +257,11 @@ class PurchaseForm
                                 ->required()
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function (Set $set, Get $get) {
-                                    $subtotal = (float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1);
+                                    $rowSubtotal = (float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1);
 
-                                    $set('subtotal', $subtotal);
+                                    $set('subtotal', $rowSubtotal);
+
+                                    self::refreshTotals($set, $get);
                                 })
                                 ->columnSpan(2),
 
@@ -242,9 +273,11 @@ class PurchaseForm
                                 ->minValue(1)
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get) {
-                                    $subtotal = (float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1);
+                                    $rowSubtotal = (float) ($get('cost_price') ?: 0) * (int) ($get('qty') ?: 1);
 
-                                    $set('subtotal', $subtotal);
+                                    $set('subtotal', $rowSubtotal);
+
+                                    self::refreshTotals($set, $get);
                                 })
                                 ->columnSpan(2),
 
@@ -271,7 +304,6 @@ class PurchaseForm
                             Hidden::make('subtotal')->dehydrated(),
                         ])
                         ->columns(5)
-                        ->live()
                         ->addActionLabel('+ Tambah Produk')
                         ->minItems(1)
                         ->defaultItems(1)

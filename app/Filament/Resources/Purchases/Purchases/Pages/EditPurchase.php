@@ -27,6 +27,9 @@ class EditPurchase extends EditRecord
 
     protected function afterSave(): void
     {
+        $this->record->refresh();
+        $this->record->recalculate();
+
         $oldStatus = $this->statusBeforeSave;
         $newStatus = $this->record->status;
 
