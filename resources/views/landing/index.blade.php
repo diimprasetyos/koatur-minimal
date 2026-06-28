@@ -34,10 +34,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    Login
+                    Masuk
                 </a>
                 <a href="/register" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-                    Sign up
+                    Daftar
                 </a>
             </div>
 
@@ -76,12 +76,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        Login
+                        Masuk
                     </a>
                 </div>
                 <a href="/register"
                     class="w-full text-center py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium">
-                    Sign up
+                    Daftar
                 </a>
             </div>
         </div>
@@ -103,6 +103,10 @@
                     <a href="/register"
                         class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium text-center">
                         Coba Sekarang
+                    </a>
+                    <a href="{{ url('/pricing') }}"
+                        class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium text-center">
+                        Berlangganan Sekarang
                     </a>
                     <a href="#fitur"
                         class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium text-center">
@@ -170,48 +174,48 @@
             <div class="card overflow-hidden shadow-xl bg-gray-100 relative h-64 md:h-96">
 
                 @php
-                $slides = [
-                [
-                'img' => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=400&fit=crop',
-                'alt' => 'Laporan Penjualan Dashboard',
-                'title' => 'Laporan Penjualan',
-                'desc' => 'Analitik lengkap dan real-time untuk setiap transaksi',
-                ],
-                [
-                'img' =>
-                'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=400&fit=crop',
-                'alt' => 'Manajemen Stok',
-                'title' => 'Manajemen Stok',
-                'desc' => 'Kelola inventori dengan mudah dan pantau stok secara real-time',
-                ],
-                [
-                'img' =>
-                'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
-                'alt' => 'Sistem Kasir',
-                'title' => 'Sistem Kasir Cepat',
-                'desc' => 'Interface kasir intuitif untuk transaksi yang lebih cepat dan akurat',
-                ],
-                [
-                'img' =>
-                'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&h=400&fit=crop',
-                'alt' => 'Multi Device Support',
-                'title' => 'Multi Device Support',
-                'desc' => 'Akses dari mobile, tablet, atau desktop dengan sinkronisasi otomatis',
-                ],
-                ];
+                    $slides = [
+                        [
+                            'img' => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=400&fit=crop',
+                            'alt' => 'Laporan Penjualan Dashboard',
+                            'title' => 'Laporan Penjualan',
+                            'desc' => 'Analitik lengkap dan real-time untuk setiap transaksi',
+                        ],
+                        [
+                            'img' =>
+                                'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=400&fit=crop',
+                            'alt' => 'Manajemen Stok',
+                            'title' => 'Manajemen Stok',
+                            'desc' => 'Kelola inventori dengan mudah dan pantau stok secara real-time',
+                        ],
+                        [
+                            'img' =>
+                                'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&h=400&fit=crop',
+                            'alt' => 'Sistem Kasir',
+                            'title' => 'Sistem Kasir Cepat',
+                            'desc' => 'Interface kasir intuitif untuk transaksi yang lebih cepat dan akurat',
+                        ],
+                        [
+                            'img' =>
+                                'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&h=400&fit=crop',
+                            'alt' => 'Multi Device Support',
+                            'title' => 'Multi Device Support',
+                            'desc' => 'Akses dari mobile, tablet, atau desktop dengan sinkronisasi otomatis',
+                        ],
+                    ];
                 @endphp
 
                 @foreach ($slides as $index => $slide)
-                <div
-                    class="carousel-slide {{ $index === 0 ? 'active' : '' }} absolute w-full h-full transition-opacity duration-500 ease-in-out">
-                    <img src="{{ $slide['img'] }}" alt="{{ $slide['alt'] }}"
-                        class="w-full h-full object-cover">
                     <div
-                        class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 md:p-6">
-                        <h3 class="text-white text-lg md:text-xl font-bold">{{ $slide['title'] }}</h3>
-                        <p class="text-white/80 text-xs md:text-sm">{{ $slide['desc'] }}</p>
+                        class="carousel-slide {{ $index === 0 ? 'active' : '' }} absolute w-full h-full transition-opacity duration-500 ease-in-out">
+                        <img src="{{ $slide['img'] }}" alt="{{ $slide['alt'] }}"
+                            class="w-full h-full object-cover">
+                        <div
+                            class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 md:p-6">
+                            <h3 class="text-white text-lg md:text-xl font-bold">{{ $slide['title'] }}</h3>
+                            <p class="text-white/80 text-xs md:text-sm">{{ $slide['desc'] }}</p>
+                        </div>
                     </div>
-                </div>
                 @endforeach
 
                 {{-- Prev Button --}}
@@ -234,9 +238,9 @@
             {{-- Carousel Dots --}}
             <div class="flex justify-center gap-2 mt-4 md:mt-6">
                 @foreach ($slides as $index => $slide)
-                <button onclick="goToSlide({{ $index }})"
-                    class="carousel-dot {{ $index === 0 ? 'active' : '' }} w-3 h-3 rounded-full bg-gray-300 transition-all cursor-pointer hover:bg-gray-400">
-                </button>
+                    <button onclick="goToSlide({{ $index }})"
+                        class="carousel-dot {{ $index === 0 ? 'active' : '' }} w-3 h-3 rounded-full bg-gray-300 transition-all cursor-pointer hover:bg-gray-400">
+                    </button>
                 @endforeach
             </div>
         </div>
@@ -312,13 +316,14 @@
                                 pilarpasificcode@gmail.com
                             </a>
                         </li>
-                        <li><a href="tel:+6281247758775" class="hover:opacity-80 transition">+62 812 4775 8775</a>
+                        <li><a href="tel:+6285923493083" class="hover:opacity-80 transition">+62 859 2349 3083</a>
                         </li>
                     </ul>
                 </div>
             </div>
             <div class="border-t border-white/20 pt-8">
-                <p class="text-sm text-center opacity-80">© {{ date('Y') }} Pilar Pasific Code. All rights reserved.</p>
+                <p class="text-sm text-center opacity-80">© {{ date('Y') }} Pilar Pasific Code. All rights
+                    reserved.</p>
             </div>
         </div>
     </footer>
